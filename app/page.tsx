@@ -358,9 +358,6 @@ export default function HomePage() {
             <Button type="button" size="lg" className="hero-glow-button group relative overflow-hidden mx-auto" onClick={scrollToBooking}>
               <span className="relative z-10 flex items-center gap-3">
                 Выбрать базу и забронировать
-                <svg className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
               </span>
             </Button>
             {/* "Ответ в течение часа" удалён */}
