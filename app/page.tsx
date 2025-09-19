@@ -1,17 +1,29 @@
+// app/page.tsx
 "use client"
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { ChevronDown, MapPin, Users, Dumbbell, Car, Phone, Mail, MapIcon, Trophy, Zap, CheckCircle } from "lucide-react"
+import {
+  ChevronDown,
+  MapPin,
+  Users,
+  Dumbbell,
+  Car,
+  Phone,
+  Mail,
+  MapIcon,
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react"
 
 export default function HomePage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null)
@@ -30,6 +42,75 @@ export default function HomePage() {
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const router = useRouter()
+
+  // refs (для позиции попапа и клика вне)
+  const rangeControlRef = useRef<HTMLDivElement | null>(null)
+  const popupRef = useRef<HTMLDivElement | null>(null)
+
+  // IntersectionObserver-based AOS replacement
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const timeouts: number[] = []
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const el = entry.target as HTMLElement
+          if (!el) return
+          if (entry.isIntersecting) {
+            const rawDelay = el.getAttribute("data-aos-delay") || el.dataset.aosDelay || "0"
+            const delay = parseInt(rawDelay.toString(), 10) || 0
+            const doAnimate = () => {
+              el.classList.add("aos-animate")
+            }
+            if (el.hasAttribute("data-aos-onload")) {
+              const t = window.setTimeout(doAnimate, delay)
+              timeouts.push(t)
+            } else {
+              const t = window.setTimeout(() => {
+                doAnimate()
+              }, delay)
+              timeouts.push(t)
+            }
+            observer.unobserve(el)
+          }
+        })
+      },
+      {
+        threshold: 0.12,
+        root: null,
+        rootMargin: "0px",
+      }
+    )
+
+    const nodes = Array.from(document.querySelectorAll<HTMLElement>("[data-aos]"))
+    nodes.forEach((n) => {
+      if (n.classList.contains("aos-animate")) return
+      observer.observe(n)
+    })
+
+    return () => {
+      timeouts.forEach((t) => clearTimeout(t))
+      observer.disconnect()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    try {
+      const params = new URLSearchParams(window.location.search)
+      if (params.get("scrollTo") === "booking") {
+        window.scrollTo(0, 0)
+        const timer = window.setTimeout(() => {
+          const bookingSection = document.getElementById("booking-form")
+          bookingSection?.scrollIntoView({ behavior: "smooth" })
+          try {
+            history.replaceState(null, "", window.location.pathname + window.location.hash)
+          } catch {}
+        }, 700)
+        return () => clearTimeout(timer)
+      }
+    } catch {}
+  }, [])
 
   const toggleFaq = (index: number) => {
     setOpenFaq(openFaq === index ? null : index)
@@ -71,10 +152,8 @@ export default function HomePage() {
         throw new Error("Failed to submit booking")
       }
 
-      // Show success state
       setIsSubmitted(true)
 
-      // Reset form after 3 seconds
       setTimeout(() => {
         setIsSubmitted(false)
         setFormData({
@@ -104,82 +183,208 @@ export default function HomePage() {
     }))
   }
 
+  /* ---------------- Date range picker (single-month) ---------------- */
+  const [calendarOpen, setCalendarOpen] = useState(false)
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const now = new Date()
+    return new Date(now.getFullYear(), now.getMonth(), 1)
+  })
+  const [selecting, setSelecting] = useState<"start" | "end">("start")
+
+  const selectedStart = useMemo(() => (formData.checkin ? new Date(formData.checkin) : null), [formData.checkin])
+  const selectedEnd = useMemo(() => (formData.checkout ? new Date(formData.checkout) : null), [formData.checkout])
+
+  const startOfDay = (d: Date) => {
+    const x = new Date(d)
+    x.setHours(0, 0, 0, 0)
+    return x
+  }
+
+  const formatISO = (d: Date) => {
+    const y = d.getFullYear()
+    const m = `${d.getMonth() + 1}`.padStart(2, "0")
+    const day = `${d.getDate()}`.padStart(2, "0")
+    return `${y}-${m}-${day}`
+  }
+
+  const isSameDay = (a: Date | null, b: Date | null) => {
+    if (!a || !b) return false
+    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+  }
+
+  function getMonthMatrix(year: number, month: number) {
+    const first = new Date(year, month, 1)
+    const firstWeekday = (first.getDay() + 6) % 7 // Monday=0
+    const daysInMonth = new Date(year, month + 1, 0).getDate()
+    const prevDays = firstWeekday
+    const totalCells = prevDays + daysInMonth
+    const rows = Math.ceil(totalCells / 7)
+    const matrix: (Date | null)[][] = []
+    let dayCounter = 1 - prevDays
+    for (let r = 0; r < rows; r++) {
+      const week: (Date | null)[] = []
+      for (let c = 0; c < 7; c++) {
+        if (dayCounter < 1) {
+          const d = new Date(year, month, dayCounter)
+          week.push(d)
+        } else if (dayCounter > daysInMonth) {
+          const d = new Date(year, month, dayCounter)
+          week.push(d)
+        } else {
+          week.push(new Date(year, month, dayCounter))
+        }
+        dayCounter++
+      }
+      matrix.push(week)
+    }
+    return matrix
+  }
+
+  const monthMatrix = useMemo(() => getMonthMatrix(calendarMonth.getFullYear(), calendarMonth.getMonth()), [calendarMonth])
+
+  const dayInRange = (d: Date) => {
+    if (!selectedStart || !selectedEnd) return false
+    const s = startOfDay(selectedStart).getTime()
+    const e = startOfDay(selectedEnd).getTime()
+    const t = startOfDay(d).getTime()
+    return t >= s && t <= e
+  }
+
+  const handleDayClick = (d: Date) => {
+    const clicked = startOfDay(d)
+    // if no start & end -> set start, switch to selecting end, don't close
+    if (!formData.checkin && !formData.checkout) {
+      handleInputChange("checkin", formatISO(clicked))
+      setSelecting("end")
+      return
+    }
+
+    // if start exists and no end -> set end (ensure order), DO NOT close (user will press Готово)
+    if (formData.checkin && !formData.checkout) {
+      const start = new Date(formData.checkin)
+      const startMs = startOfDay(start).getTime()
+      const clickedMs = clicked.getTime()
+      if (clickedMs < startMs) {
+        handleInputChange("checkin", formatISO(clicked))
+        handleInputChange("checkout", formatISO(start))
+      } else {
+        handleInputChange("checkout", formatISO(clicked))
+      }
+      setSelecting("start")
+      // DO NOT close here — wait for "Готово" or click outside
+      return
+    }
+
+    // if both selected -> start new selection with clicked as start
+    if (formData.checkin && formData.checkout) {
+      handleInputChange("checkin", formatISO(clicked))
+      handleInputChange("checkout", "")
+      setSelecting("end")
+      return
+    }
+  }
+
+  const prevMonth = () => {
+    setCalendarMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))
+  }
+  const nextMonth = () => {
+    setCalendarMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))
+  }
+
+  useEffect(() => {
+    // close on click outside popup
+    if (!calendarOpen) return
+    function onDoc(e: MouseEvent) {
+      const target = e.target as Node
+      if (popupRef.current && rangeControlRef.current && !popupRef.current.contains(target) && !rangeControlRef.current.contains(target)) {
+        setCalendarOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", onDoc)
+    return () => document.removeEventListener("mousedown", onDoc)
+  }, [calendarOpen])
+
+  /* ---- segmented base switch helper ---- */
+  const BASES = [
+    { id: "anapa", label: "Анапа" },
+    { id: "volgograd", label: "Волгоград" },
+    { id: "tuapse", label: "Туапсе" },
+  ]
+
+  const onSelectBase = (id: string) => {
+    handleInputChange("base", id)
+  }
+
+  /* ------------------------------- */
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Hero Section */}
+      {/* HERO */}
       <section className="relative h-screen flex items-center justify-center overflow-hidden">
-        {/* Background Image Placeholder - планируется динамичное фото спортсменов в действии */}
         <div className="absolute inset-0 z-0">
           <img
-            src="/placeholder.svg?height=1080&width=1920"
-            alt="Динамичные спортивные тренировки"
-            className="w-full h-full object-cover scale-105 animate-pulse"
+            src="/anapa/photo_2025-09-15_21-01-43.jpg?height=1080&width=1920"
+            alt="Спорт 1"
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ clipPath: "polygon(0 0, 36% 0, 24% 100%, 0 100%)" }}
+            data-aos="fade"
           />
-          <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/50 to-primary/20"></div>
+          <img
+            src="/football.jpg?.jpg?height=1080&width=1920"
+            alt="Спорт 2"
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ clipPath: "polygon(36% 0, 76% 0, 76% 100%, 24% 100%)" }}
+            data-aos="fade"
+          />
+          <img
+            src="/anapa/photo_2025-09-15_21-01-43.jpg?height=1080&width=1920"
+            alt="Спорт 3"
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ clipPath: "polygon(76% 0, 100% 0, 100% 100%, 64% 100%)" }}
+            data-aos="fade"
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/50 to-primary/20" />
         </div>
 
-        <div className="relative z-10 text-center text-white max-w-5xl mx-auto px-4 animate-fade-in">
-          <div className="mb-6 flex justify-center">
-            
-          </div>
-          <h1 className="font-serif text-6xl md:text-8xl font-bold mb-8 leading-tight bg-gradient-to-r from-white via-white to-primary/80 bg-clip-text text-transparent">
+        <div className="relative z-10 text-center text-white max-w-5xl mx-auto px-4" data-aos="fade" data-aos-onload>
+          <h1 className="font-serif text-6xl md:text-8xl font-bold mb-6 leading-tight bg-gradient-to-r from-white via-white to-primary/80 bg-clip-text text-transparent" data-aos="slide-up" data-aos-delay="120">
             Организуйте идеальные спортивные сборы
           </h1>
-          <p className="text-2xl md:text-3xl mb-10 text-gray-200 max-w-3xl mx-auto leading-relaxed font-medium">
-            Арендуйте современные базы в Москве, Волгограде и Сочи для достижения победных результатов
+          <p className="text-2xl md:text-3xl mb-8 text-gray-200 max-w-3xl mx-auto leading-relaxed font-medium" data-aos="slide-up" data-aos-delay="220">
+            Арендуйте современные базы в Анапе, Волгограде и Туапсе для достижения победных результатов
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Button
-              size="lg"
-              className="bg-primary hover:bg-primary/90 text-primary-foreground px-10 py-5 text-xl font-bold transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-primary/25"
-              onClick={scrollToBooking}
-            >
-              Выбрать базу и забронировать
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center" data-aos="zoom-in" data-aos-delay="320">
+            <Button type="button" size="lg" className="hero-glow-button group relative overflow-hidden mx-auto" onClick={scrollToBooking}>
+              <span className="relative z-10 flex items-center gap-3">
+                Выбрать базу и забронировать
+                <svg className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+              </span>
             </Button>
-            <div className="flex items-center gap-2 text-base text-gray-300">
-              <Zap className="w-5 h-5 text-primary" />
-              <span className="font-medium">Ответ в течение часа</span>
-            </div>
+            {/* "Ответ в течение часа" удалён */}
           </div>
         </div>
       </section>
 
-      {/* Advantages Section */}
+      {/* Advantages */}
       <section className="py-20 bg-gradient-to-b from-muted/30 to-background">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="font-serif text-5xl font-bold mb-6">Наши преимущества</h2>
-            <p className="text-muted-foreground text-xl max-w-2xl mx-auto leading-relaxed">
+            <h2 className="font-serif text-5xl font-bold mb-6" data-aos="slide-up">Наши преимущества</h2>
+            <p className="text-muted-foreground text-xl max-w-2xl mx-auto leading-relaxed" data-aos="fade">
               Всё необходимое для эффективных тренировок и комфортного проживания команды
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8" data-aos="fade-up">
             {[
-              {
-                icon: Dumbbell,
-                title: "Современная инфраструктура",
-                description: "Новейшее оборудование и спортивные объекты",
-              },
-              {
-                icon: Users,
-                title: "Проживание и питание 'всё включено'",
-                description: "Комфортные номера и качественное питание",
-              },
-              {
-                icon: Car,
-                title: "Трансфер от/до вокзала",
-                description: "Удобная доставка команды к месту сборов",
-              },
-              {
-                icon: Phone,
-                title: "Круглосуточная поддержка",
-                description: "Всегда готовы помочь и решить любые вопросы",
-              },
+              { icon: Dumbbell, title: "Современная инфраструктура", description: "Новейшее оборудование и спортивные объекты" },
+              { icon: Users, title: "Проживание и питание 'всё включено'", description: "Комфортные номера и качественное питание" },
+              { icon: Car, title: "Трансфер от/до вокзала", description: "Удобная доставка команды к месту сборов" },
+              { icon: Phone, title: "Круглосуточная поддержка", description: "Всегда готовы помочь и решить любые вопросы" },
             ].map((advantage, index) => (
-              <div
-                key={index}
-                className="text-center group hover:transform hover:scale-105 transition-all duration-300"
-              >
+              <div key={index} className="text-center group hover:transform hover:scale-105 transition-all duration-300">
                 <div className="w-20 h-20 bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:shadow-lg transition-shadow">
                   <advantage.icon className="w-10 h-10 text-primary-foreground" />
                 </div>
@@ -191,61 +396,27 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Bases Section */}
+      {/* Bases */}
       <section className="py-20">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="font-serif text-5xl font-bold mb-6">Наши базы</h2>
-            <p className="text-muted-foreground text-xl max-w-2xl mx-auto leading-relaxed">
+            <h2 className="font-serif text-5xl font-bold mb-6" data-aos="slide-up">Наши базы</h2>
+            <p className="text-muted-foreground text-xl max-w-2xl mx-auto leading-relaxed" data-aos="fade">
               Выберите идеальную локацию для ваших спортивных сборов
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8" data-aos="zoom-in">
             {[
-              {
-                city: "Москва",
-                image: "/placeholder.svg?height=300&width=400",
-                features: [
-                  "Собственное футбольное поле",
-                  "Бассейн 25м",
-                  "Современный тренажерный зал",
-                  "Комнаты на 2-3 человека",
-                ],
-                route: "moscow",
-              },
-              {
-                city: "Волгоград",
-                image: "/placeholder.svg?height=300&width=400",
-                features: [
-                  "Легкоатлетический манеж",
-                  "Крытый спортивный зал",
-                  "Медицинский центр",
-                  "Комфортные номера",
-                ],
-                route: "volgograd",
-              },
-              {
-                city: "Сочи",
-                image: "/placeholder.svg?height=300&width=400",
-                features: ["Открытые теннисные корты", "Олимпийский бассейн", "SPA и восстановление", "Вид на горы"],
-                route: "sochi",
-              },
+              { city: "Анапа", image: "/anapa/photo_2025-09-15_21-02-25.jpg?height=300&width=400", features: ["Собственное футбольное поле","Бассейн 25м","Современный тренажерный зал","Комнаты на 2-3 человека"], route: "anapa" },
+              { city: "Волгоград", image: "/placeholder.svg?height=300&width=400", features: ["Легкоатлетический манеж","Крытый спортивный зал","Медицинский центр","Комфортные номера"], route: "volgograd" },
+              { city: "Туапсе", image: "/placeholder.svg?height=300&width=400", features: ["Открытые теннисные корты","Олимпийский бассейн","SPA и восстановление","Вид на горы"], route: "tuapse" },
             ].map((base, index) => (
-              <Card
-                key={index}
-                className="overflow-hidden hover:shadow-2xl transition-all duration-500 cursor-pointer group transform hover:scale-105 border-0 shadow-lg"
-                onClick={() => navigateToBase(base.route)}
-              >
+              <Card key={index} className="overflow-hidden hover:shadow-2xl transition-all duration-500 cursor-pointer group transform hover:scale-105 border-0 shadow-lg" onClick={() => navigateToBase(base.route)}>
                 <div className="relative h-72 overflow-hidden">
-                  <img
-                    src={base.image || "/placeholder.svg"}
-                    alt={`База в ${base.city}`}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                  />
+                  <img src={base.image || "/placeholder.svg"} alt={`База в ${base.city}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <div className="absolute top-4 right-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
-                    Доступно
-                  </div>
+                  <div className="absolute top-4 right-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">От 2200 руб/чел</div>
                 </div>
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-3 text-2xl font-serif">
@@ -260,9 +431,7 @@ export default function HomePage() {
                     {base.features.map((feature, featureIndex) => (
                       <li key={featureIndex} className="flex items-center gap-3 text-base">
                         <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
-                        <span className="text-muted-foreground group-hover:text-foreground transition-colors">
-                          {feature}
-                        </span>
+                        <span className="text-muted-foreground group-hover:text-foreground transition-colors">{feature}</span>
                       </li>
                     ))}
                   </ul>
@@ -277,51 +446,28 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* How We Work Section */}
+      {/* How We Work */}
       <section className="py-20 bg-gradient-to-b from-muted/30 to-background">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="font-serif text-5xl font-bold mb-6">Как мы работаем</h2>
-            <p className="text-muted-foreground text-xl max-w-2xl mx-auto leading-relaxed">
-              Простой и понятный процесс от заявки до проведения сборов
-            </p>
+            <h2 className="font-serif text-5xl font-bold mb-6" data-aos="slide-up">Как мы работаем</h2>
+            <p className="text-muted-foreground text-xl max-w-2xl mx-auto leading-relaxed" data-aos="fade">Простой и понятный процесс от заявки до проведения сборов</p>
           </div>
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-4xl mx-auto" data-aos="fade-up">
             <div className="space-y-8">
               {[
-                {
-                  step: 1,
-                  title: "Выбор базы и дат",
-                  description: "Определите подходящую базу и желаемые даты проведения сборов",
-                },
-                {
-                  step: 2,
-                  title: "Заполнение заявки",
-                  description: "Оставьте заявку с указанием всех необходимых деталей",
-                },
-                {
-                  step: 3,
-                  title: "Звонок менеджера",
-                  description: "Наш менеджер свяжется с вами для уточнения деталей",
-                },
+                { step: 1, title: "Выбор базы и дат", description: "Определите подходящую базу и желаемые даты проведения сборов" },
+                { step: 2, title: "Заполнение заявки", description: "Оставьте заявку с указанием всех необходимых деталей" },
+                { step: 3, title: "Звонок менеджера", description: "Наш менеджер свяжется с вами для уточнения деталей" },
                 { step: 4, title: "Подтверждение брони", description: "Подтверждаем бронирование и заключаем договор" },
-                {
-                  step: 5,
-                  title: "Заезд и проведение сборов",
-                  description: "Приезжайте и проводите эффективные тренировки",
-                },
+                { step: 5, title: "Заезд и проведение сборов", description: "Приезжайте и проводите эффективные тренировки" },
               ].map((item, index) => (
-                <div
-                  key={index}
-                  className="flex items-start gap-6 group hover:transform hover:translate-x-2 transition-all duration-300"
-                >
+                <div key={index} className="flex items-start gap-6 group hover:transform hover:translate-x-2 transition-all duration-300">
                   <div className="w-16 h-16 bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center text-primary-foreground font-bold text-xl flex-shrink-0 group-hover:shadow-lg transition-shadow">
                     {item.step}
                   </div>
                   <div className="pt-2">
-                    <h3 className="font-semibold text-2xl mb-4 group-hover:text-primary transition-colors">
-                      {item.title}
-                    </h3>
+                    <h3 className="font-semibold text-2xl mb-4 group-hover:text-primary transition-colors">{item.title}</h3>
                     <p className="text-muted-foreground leading-relaxed text-lg">{item.description}</p>
                   </div>
                 </div>
@@ -331,67 +477,41 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Booking Form Section */}
+      {/* Booking Form */}
       <section id="booking-form" className="py-20">
         <div className="container mx-auto px-4">
           <div className="max-w-2xl mx-auto text-center mb-12">
-            <h2 className="font-serif text-5xl font-bold mb-6">Оставьте заявку на бронирование</h2>
-            <p className="text-muted-foreground text-xl leading-relaxed">
-              Наш менеджер свяжется с вами в течение часа, чтобы ответить на все вопросы и рассчитать стоимость
-            </p>
+            <h2 className="font-serif text-5xl font-bold mb-6" data-aos="slide-up">Оставьте заявку на бронирование</h2>
+            <p className="text-muted-foreground text-xl leading-relaxed" data-aos="fade">Наш менеджер свяжется с вами в течение часа, чтобы ответить на все вопросы и рассчитать стоимость</p>
           </div>
 
-          <Card className="max-w-2xl mx-auto overflow-hidden shadow-2xl border-0 bg-gradient-to-br from-white via-white to-gray-50/50">
+          <Card className="max-w-2xl mx-auto overflow-hidden shadow-2xl border-0 bg-gradient-to-br from-white via-white to-gray-50/50" data-aos="zoom-in">
             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10 pointer-events-none"></div>
             <CardContent className="relative p-10">
               {isSubmitted ? (
-                <div className="text-center py-12">
+                <div className="text-center py-12" data-aos="zoom-in">
                   <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
                     <CheckCircle className="w-10 h-10 text-green-600" />
                   </div>
                   <h3 className="text-2xl font-bold text-green-600 mb-4">Заявка успешно отправлена!</h3>
-                  <p className="text-muted-foreground text-lg">
-                    Спасибо за вашу заявку. Наш менеджер свяжется с вами в ближайшее время.
-                  </p>
+                  <p className="text-muted-foreground text-lg">Спасибо за вашу заявку. Наш менеджер свяжется с вами в ближайшее время.</p>
                 </div>
               ) : (
                 <form className="space-y-8" onSubmit={handleSubmit}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <Label htmlFor="name" className="text-lg font-semibold text-gray-800 mb-3 block">
-                        Имя *
-                      </Label>
-                      <Input
-                        id="name"
-                        placeholder="Введите ваше имя"
-                        required
-                        value={formData.name}
-                        onChange={(e) => handleInputChange("name", e.target.value)}
-                        disabled={isSubmitting}
-                        className="h-14 text-lg border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 placeholder:text-gray-400 bg-white/80 backdrop-blur-sm"
-                      />
+                      <Label htmlFor="name" className="text-lg font-semibold text-gray-800 mb-3 block">Имя *</Label>
+                      <Input id="name" placeholder="Введите ваше имя" required value={formData.name} onChange={(e) => handleInputChange("name", e.target.value)} disabled={isSubmitting} className="h-14 text-lg border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 placeholder:text-gray-400 bg-white/80 backdrop-blur-sm" />
                     </div>
                     <div>
-                      <Label htmlFor="phone" className="text-lg font-semibold text-gray-800 mb-3 block">
-                        Номер телефона *
-                      </Label>
-                      <Input
-                        id="phone"
-                        type="tel"
-                        placeholder="+7 (999) 123-45-67"
-                        required
-                        value={formData.phone}
-                        onChange={(e) => handleInputChange("phone", e.target.value)}
-                        disabled={isSubmitting}
-                        className="h-14 text-lg border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 placeholder:text-gray-400 bg-white/80 backdrop-blur-sm"
-                      />
+                      <Label htmlFor="phone" className="text-lg font-semibold text-gray-800 mb-3 block">Номер телефона *</Label>
+                      <Input id="phone" type="tel" placeholder="+7 (999) 123-45-67" required value={formData.phone} onChange={(e) => handleInputChange("phone", e.target.value)} disabled={isSubmitting} className="h-14 text-lg border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 placeholder:text-gray-400 bg-white/80 backdrop-blur-sm" />
                     </div>
                   </div>
 
-                  <div>
-                    <Label htmlFor="email" className="text-lg font-semibold text-gray-800 mb-3 block">
-                      Email *
-                    </Label>
+                  {/* --- Email (вставлено под имя и телефон, растянуто на всю строку) */}
+                  <div data-aos="slide-up">
+                    <Label htmlFor="email" className="text-lg font-semibold text-gray-800 mb-3 block">Email *</Label>
                     <Input
                       id="email"
                       type="email"
@@ -404,129 +524,209 @@ export default function HomePage() {
                     />
                   </div>
 
-                  <div>
-                    <Label htmlFor="base" className="text-lg font-semibold text-gray-800 mb-3 block">
-                      Выбор базы *
-                    </Label>
-                    <Select
-                      value={formData.base}
-                      onValueChange={(value) => handleInputChange("base", value)}
-                      disabled={isSubmitting}
-                    >
-                      <SelectTrigger className="h-14 text-lg border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 bg-white/80 backdrop-blur-sm">
-                        <SelectValue placeholder="Выберите базу" className="text-gray-400" />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-xl border-2">
-                        <SelectItem value="moscow" className="text-lg py-3">
-                          Москва
-                        </SelectItem>
-                        <SelectItem value="volgograd" className="text-lg py-3">
-                          Волгоград
-                        </SelectItem>
-                        <SelectItem value="sochi" className="text-lg py-3">
-                          Сочи
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Выбор базы — SEGMENTED SWITCH (растянут, центрирован, отступы от краёв формы) */}
+                  <div className="space-y-6">
                     <div>
-                      <Label htmlFor="checkin" className="text-lg font-semibold text-gray-800 mb-3 block">
-                        Дата заезда *
-                      </Label>
-                      <Input
-                        id="checkin"
-                        type="date"
-                        required
-                        value={formData.checkin}
-                        onChange={(e) => handleInputChange("checkin", e.target.value)}
-                        disabled={isSubmitting}
-                        className="h-14 text-lg border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 bg-white/80 backdrop-blur-sm"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="checkout" className="text-lg font-semibold text-gray-800 mb-3 block">
-                        Дата выезда *
-                      </Label>
-                      <Input
-                        id="checkout"
-                        type="date"
-                        required
-                        value={formData.checkout}
-                        onChange={(e) => handleInputChange("checkout", e.target.value)}
-                        disabled={isSubmitting}
-                        className="h-14 text-lg border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 bg-white/80 backdrop-blur-sm"
-                      />
-                    </div>
-                  </div>
+                      <Label htmlFor="base" className="text-lg font-semibold text-gray-800 mb-3 block">Выбор базы *</Label>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <Label htmlFor="people" className="text-lg font-semibold text-gray-800 mb-3 block">
-                        Количество человек *
-                      </Label>
-                      <Input
-                        id="people"
-                        type="number"
-                        placeholder="Например: 15"
-                        required
-                        value={formData.people}
-                        onChange={(e) => handleInputChange("people", e.target.value)}
-                        disabled={isSubmitting}
-                        className="h-14 text-lg border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 placeholder:text-gray-400 bg-white/80 backdrop-blur-sm"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="sport" className="text-lg font-semibold text-gray-800 mb-3 block">
-                        Вид спорта *
-                      </Label>
-                      <Input
-                        id="sport"
-                        placeholder="Например: Футбол"
-                        required
-                        value={formData.sport}
-                        onChange={(e) => handleInputChange("sport", e.target.value)}
-                        disabled={isSubmitting}
-                        className="h-14 text-lg border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 placeholder:text-gray-400 bg-white/80 backdrop-blur-sm"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="additional" className="text-lg font-semibold text-gray-800 mb-3 block">
-                      Дополнительные пожелания
-                    </Label>
-                    <Textarea
-                      id="additional"
-                      placeholder="Укажите особые требования или пожелания к проведению сборов..."
-                      value={formData.additional}
-                      onChange={(e) => handleInputChange("additional", e.target.value)}
-                      disabled={isSubmitting}
-                      className="min-h-[120px] text-lg border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 placeholder:text-gray-400 bg-white/80 backdrop-blur-sm resize-none"
-                    />
-                  </div>
-
-                  {submitError && (
-                    <div className="text-red-600 text-lg bg-red-50 p-6 rounded-xl border-2 border-red-200">
-                      {submitError}
-                    </div>
-                  )}
-
-                  <Button
-                    type="submit"
-                    className="w-full h-16 text-xl font-bold bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white rounded-xl shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? (
-                      <div className="flex items-center gap-3">
-                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                        Отправляем заявку...
+                      <div className="mx-auto w-full max-w-[680px] px-4">
+                        <div role="radiogroup" aria-label="Выбор базы" className="flex w-full bg-white/90 border border-gray-200 rounded-2xl p-1 gap-1">
+                          {BASES.map((b) => {
+                            const selected = formData.base === b.id
+                            return (
+                              <button
+                                key={b.id}
+                                type="button"
+                                role="radio"
+                                aria-checked={selected}
+                                onClick={() => onSelectBase(b.id)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault()
+                                    onSelectBase(b.id)
+                                  }
+                                }}
+                                className={`flex-1 px-4 py-3 text-base font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-200 text-center
+                                  ${selected
+                                    ? "bg-red-50 text-red-700 border border-red-100 shadow-sm"
+                                    : "bg-white text-gray-700 hover:bg-gray-50 border border-transparent"}
+                                `}
+                                style={{
+                                  boxShadow: selected ? "0 8px 30px rgba(220,38,38,0.07)" : undefined,
+                                }}
+                              >
+                                {b.label}
+                              </button>
+                            )
+                          })}
+                        </div>
                       </div>
-                    ) : (
-                      "Отправить заявку"
-                    )}
-                  </Button>
+                    </div>
+
+                    <div>
+                      <Label className="text-lg font-semibold text-gray-800 mb-3 block">Период проживания *</Label>
+
+                      <div ref={rangeControlRef} className="relative inline-block w-full">
+                        <div
+                          className="range-picker relative rounded-2xl border-2 border-gray-200 bg-white/90 backdrop-blur-sm h-14 px-4 flex items-center justify-between gap-4 cursor-pointer select-none hover:border-primary/50 transition-all duration-300"
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => {
+                            setCalendarOpen((p) => !p)
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault()
+                              setCalendarOpen((p) => !p)
+                            }
+                          }}
+                        >
+                          <div className="flex items-center gap-3">
+                            <svg width="18" height="18" viewBox="0 0 24 24" className="text-gray-500" fill="none" aria-hidden>
+                              <path d="M8 7V3M16 7V3M3 11h18M5 21h14a2 2 0 0 0 2-2V8H3v11a2 2 0 0 0 2 2z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                            <div className="text-sm text-gray-600">Выберите даты</div>
+                          </div>
+
+                          <div className="text-sm text-gray-700 flex items-center gap-3">
+                            {formData.checkin ? (
+                              <div className="px-3 py-1 rounded-md bg-red-50 text-red-700 border border-red-100">
+                                {new Date(formData.checkin).toLocaleDateString('ru-RU')}
+                              </div>
+                            ) : (
+                              <div className="text-gray-400">Дата заезда</div>
+                            )}
+
+                            <span className="text-gray-300">—</span>
+
+                            {formData.checkout ? (
+                              <div className="px-3 py-1 rounded-md bg-red-50 text-red-700 border border-red-100">
+                                {new Date(formData.checkout).toLocaleDateString('ru-RU')}
+                              </div>
+                            ) : (
+                              <div className="text-gray-400">Дата выезда</div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Popup */}
+                        {calendarOpen && (
+                          <div ref={popupRef} className="drp-popup mt-2" data-aos="zoom-in">
+                            <div className="drp-top flex items-center justify-between mb-2">
+                              <div className="drp-nav flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onMouseDown={(e) => e.preventDefault()}
+                                  onClick={prevMonth}
+                                  aria-label="Prev month"
+                                  className="drp-nav-btn"
+                                >
+                                  <ChevronLeft className="w-4 h-4" />
+                                </button>
+                              </div>
+                              <div className="drp-title text-sm font-medium text-gray-800">{calendarMonth.toLocaleString("ru-RU", { month: "long", year: "numeric" })}</div>
+                              <div className="drp-nav flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onMouseDown={(e) => e.preventDefault()}
+                                  onClick={nextMonth}
+                                  aria-label="Next month"
+                                  className="drp-nav-btn"
+                                >
+                                  <ChevronRight className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="drp-month-block">
+                              <div className="drp-weekdays">
+                                <div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Вс</div>
+                              </div>
+                              <div className="drp-grid">
+                                {monthMatrix.map((week, wi) =>
+                                  week.map((d, di) => {
+                                    if (!d) return <div key={`m0-${wi}-${di}`} className="drp-cell empty" />
+                                    const isCurrentMonth = d.getMonth() === calendarMonth.getMonth()
+                                    const isStart = isSameDay(d, selectedStart)
+                                    const isEnd = isSameDay(d, selectedEnd)
+                                    const inRange = dayInRange(d)
+                                    const isToday = isSameDay(d, new Date())
+                                    const classes = [
+                                      "drp-cell",
+                                      !isCurrentMonth ? "drp-cell--muted" : "",
+                                      isToday ? "drp-cell--today" : "",
+                                      (isStart || isEnd) ? "drp-cell--selected" : "",
+                                      inRange && !(isStart || isEnd) ? "drp-cell--inrange" : "",
+                                    ].filter(Boolean).join(" ")
+                                    return (
+                                      <div key={`m0-${wi}-${di}`} className={classes} onClick={() => handleDayClick(d)} title={d.toLocaleDateString("ru-RU")}>
+                                        {d.getDate()}
+                                      </div>
+                                    )
+                                  })
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="drp-actions mt-3 flex items-center justify-between">
+                              <button
+                                type="button"
+                                onMouseDown={(e) => e.preventDefault()}
+                                className="drp-clear text-sm text-gray-600"
+                                onClick={() => { handleInputChange("checkin", ""); handleInputChange("checkout", ""); setSelecting("start") }}
+                              >
+                                Очистить
+                              </button>
+                              <div className="flex items-center gap-3">
+                                <div className="text-sm text-gray-600">{formData.checkin ? new Date(formData.checkin).toLocaleDateString("ru-RU") : "—"} — {formData.checkout ? new Date(formData.checkout).toLocaleDateString("ru-RU") : "—"}</div>
+                                <button
+                                  type="button"
+                                  onMouseDown={(e) => e.preventDefault()}
+                                  className="drp-apply px-3 py-1 rounded-md text-white text-sm"
+                                  onClick={() => setCalendarOpen(false)}
+                                >
+                                  Готово
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <Label htmlFor="people" className="text-lg font-semibold text-gray-800 mb-3 block">Количество человек *</Label>
+                      <Input id="people" type="number" placeholder="Например: 15" required value={formData.people} onChange={(e) => handleInputChange("people", e.target.value)} disabled={isSubmitting} className="h-14 text-lg border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 placeholder:text-gray-400 bg-white/80 backdrop-blur-sm" />
+                    </div>
+                    <div>
+                      <Label htmlFor="sport" className="text-lg font-semibold text-gray-800 mb-3 block">Вид спорта *</Label>
+                      <Input id="sport" placeholder="Например: Футбол" required value={formData.sport} onChange={(e) => handleInputChange("sport", e.target.value)} disabled={isSubmitting} className="h-14 text-lg border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 placeholder:text-gray-400 bg-white/80 backdrop-blur-sm" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="additional" className="text-lg font-semibold text-gray-800 mb-3 block">Дополнительные пожелания</Label>
+                    <Textarea id="additional" placeholder="Укажите особые требования или пожелания к проведению сборов..." value={formData.additional} onChange={(e) => handleInputChange("additional", e.target.value)} disabled={isSubmitting} className="min-h-[120px] text-lg border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 placeholder:text-gray-400 bg-white/80 backdrop-blur-sm resize-none" />
+                  </div>
+
+                  {submitError && <div className="text-red-600 text-lg bg-red-50 p-6 rounded-xl border-2 border-red-200">{submitError}</div>}
+
+                  <div className="flex justify-center">
+                    <Button type="submit" className={`hero-glow-button ${isSubmitting ? "opacity-90 cursor-wait" : ""}`} disabled={isSubmitting} data-aos="zoom-in">
+                      {isSubmitting ? (
+                        <div className="relative z-10 flex items-center justify-center gap-3 w-full">
+                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                          <span>Отправляем заявку...</span>
+                        </div>
+                      ) : (
+                        <div className="relative z-10 flex items-center justify-center gap-3 w-full">
+                          <span>Отправить заявку</span>
+                        </div>
+                      )}
+                    </Button>
+                  </div>
                 </form>
               )}
             </CardContent>
@@ -534,36 +734,22 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* FAQ Section */}
+      {/* FAQ */}
       <section className="py-20 bg-muted/30">
         <div className="container mx-auto px-4">
-          <h2 className="font-serif text-5xl font-bold text-center mb-16">Часто задаваемые вопросы</h2>
-          <div className="max-w-3xl mx-auto space-y-4">
+          <h2 className="font-serif text-5xl font-bold text-center mb-16" data-aos="slide-up">Часто задаваемые вопросы</h2>
+          <div className="max-w-3xl mx-auto space-y-4" data-aos="fade-up">
             {[
-              {
-                question: "Какова минимальная продолжительность аренды базы?",
-                answer:
-                  "Минимальная продолжительность аренды составляет 3 дня. Это позволяет командам полноценно провести тренировочный процесс и адаптироваться к условиям базы.",
-              },
-              {
-                question: "Включено ли питание в стоимость аренды?",
-                answer:
-                  "Да, все наши базы работают по системе 'всё включено'. В стоимость входит трёхразовое питание, проживание и использование всей спортивной инфраструктуры.",
-              },
-              {
-                question: "Можно ли привезти собственного повара?",
-                answer:
-                  "Конечно! Мы предоставляем полностью оборудованную кухню, где ваш повар сможет готовить. При этом стоимость аренды будет пересчитана без учёта питания.",
-              },
+              { question: "Какова минимальная продолжительность аренды базы?", answer: "Минимальная продолжительность аренды составляет 3 дня. Это позволяет командам полноценно провести тренировочный процесс и адаптироваться к условиям базы." },
+              { question: "Включено ли питание в стоимость аренды?", answer: "Да, все наши базы работают по системе 'всё включено'. В стоимость входит трёхразовое питание, проживание и использование всей спортивной инфраструктуры." },
+              { question: "Можно ли привезти собственного повара?", answer: "Конечно! Мы предоставляем полностью оборудованную кухню, где ваш повар сможет готовить. При этом стоимость аренды будет пересчитана без учёта питания." },
             ].map((faq, index) => (
               <Collapsible key={index} open={openFaq === index} onOpenChange={() => toggleFaq(index)}>
                 <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg border p-6 text-left hover:bg-muted/50 transition-colors">
                   <span className="font-semibold text-lg">{faq.question}</span>
                   <ChevronDown className={`h-5 w-5 transition-transform ${openFaq === index ? "rotate-180" : ""}`} />
                 </CollapsibleTrigger>
-                <CollapsibleContent className="px-6 pb-6 pt-2 text-muted-foreground text-base leading-relaxed">
-                  {faq.answer}
-                </CollapsibleContent>
+                <CollapsibleContent className="px-6 pb-6 pt-2 text-muted-foreground text-base leading-relaxed">{faq.answer}</CollapsibleContent>
               </Collapsible>
             ))}
           </div>
@@ -571,49 +757,102 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-black text-white py-16">
+      <footer className="bg-black text-white py-16" data-aos="fade-up">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
               <h3 className="font-serif text-3xl font-bold text-primary mb-6">Team Rive</h3>
-              <p className="text-gray-300 mb-4 text-lg leading-relaxed">
-                Современные спортивные базы для эффективных тренировок и комфортного проживания команд.
-              </p>
+              <p className="text-gray-300 mb-4 text-lg leading-relaxed">Современные спортивные базы для эффективных тренировок и комфортного проживания команд.</p>
             </div>
 
             <div>
               <h4 className="font-semibold mb-6 text-xl">Контакты</h4>
               <div className="space-y-3 text-gray-300">
-                <div className="flex items-center gap-3">
-                  <Phone className="w-5 h-5" />
-                  <span className="text-lg">+7 (495) 123-45-67</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Mail className="w-5 h-5" />
-                  <span className="text-lg">info@teamrive.ru</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <MapIcon className="w-5 h-5" />
-                  <span className="text-lg">Москва, ул. Спортивная, 15</span>
-                </div>
+                <div className="flex items-center gap-3"><Phone className="w-5 h-5" /><span className="text-lg">+7 (495) 123-45-67</span></div>
+                <div className="flex items-center gap-3"><Mail className="w-5 h-5" /><span className="text-lg">info@teamrive.ru</span></div>
+                <div className="flex items-center gap-3"><MapIcon className="w-5 h-5" /><span className="text-lg">Москва, ул. Спортивная, 15</span></div>
               </div>
             </div>
 
             <div>
               <h4 className="font-semibold mb-6 text-xl">Наши базы</h4>
-              <ul className="space-y-3 text-gray-300">
-                <li className="text-lg">Москва</li>
-                <li className="text-lg">Волгоград</li>
-                <li className="text-lg">Сочи</li>
-              </ul>
+              <ul className="space-y-3 text-gray-300"><li className="text-lg">Анапа</li><li className="text-lg">Волгоград</li><li className="text-lg">Туапсе</li></ul>
             </div>
           </div>
 
-          <div className="border-t border-gray-800 mt-12 pt-8 text-center text-gray-400">
-            <p className="text-lg">&copy; 2024 Team Rive. Все права защищены.</p>
-          </div>
+          <div className="border-t border-gray-800 mt-12 pt-8 text-center text-gray-400"><p className="text-lg">&copy; 2024 Team Rive. Все права защищены.</p></div>
         </div>
       </footer>
+
+      {/* Calendar styles (single month, no hover transform on dates) */}
+      <style jsx global>{`
+        .drp-popup {
+          position: absolute;
+          z-index: 70;
+          background: #fff;
+          border: 1px solid rgba(15,23,42,0.06);
+          border-radius: 12px;
+          box-shadow: 0 12px 40px rgba(2,6,23,0.08);
+          padding: 12px;
+          width: 420px;
+          max-width: calc(100vw - 32px);
+        }
+
+        .drp-top { display:flex; align-items:center; justify-content:space-between; gap:8px }
+        .drp-nav-btn { background: transparent; border: 0; padding: 6px; border-radius: 8px; cursor: pointer; color: #374151 }
+        .drp-title { font-weight: 600; color: #111827; font-size: 14px }
+
+        .drp-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; font-size: 12px; color: #6b7280; margin-bottom: 6px; }
+        .drp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+
+        .drp-cell {
+          height: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 10px;
+          font-size: 14px;
+          color: #374151;
+          cursor: pointer;
+          user-select: none;
+          transition: background-color 120ms ease, color 120ms ease;
+        }
+
+        .drp-cell.empty { background: transparent; cursor: default; opacity: 0; }
+        .drp-cell--muted { color: #9ca3af; opacity: 0.9; }
+
+        /* removed hover transform */
+        .drp-cell:hover { background: #f8fafc; }
+
+        .drp-cell--today {
+          box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04);
+        }
+
+        .drp-cell--selected {
+          background: #dc2626; /* strong red */
+          color: white;
+          font-weight: 700;
+          box-shadow: 0 6px 18px rgba(220,38,38,0.14);
+        }
+
+        /* days inside selected range (light red) */
+        .drp-cell--inrange {
+          background: #fff2f2; /* very light red/pink */
+          color: #b91c1c; /* darker red text */
+        }
+
+        .drp-actions { display:flex; gap:8px; justify-content:space-between; margin-top:10px; align-items:center }
+        .drp-clear { background: transparent; border: 0; color: #6b7280; font-size:13px; cursor:pointer; padding:8px }
+        .drp-apply {
+          background: linear-gradient(135deg, #dc2626 0%, #b91c1c 50%, #991b1b 100%);
+          color: white; padding: 8px 12px; border-radius: 8px; border: none; cursor: pointer;
+        }
+
+        @media (max-width: 767px) {
+          .drp-popup { width: calc(100vw - 24px); left: 12px; right: 12px; bottom: 6vh; position: fixed; }
+          .drp-cell { height: 36px; font-size: 13px; }
+        }
+      `}</style>
     </div>
   )
 }

@@ -1,15 +1,15 @@
-// app/volgograd/page.tsx
+// app/anapa/page.tsx
 "use client"
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ChevronLeft, ChevronRight, MapPin, Users, Dumbbell, Car, Wifi, UtensilsCrossed, Shield } from "lucide-react"
+import { ChevronLeft, ChevronRight, MapPin, Users, Dumbbell, Waves, Car, Wifi, UtensilsCrossed, Shield } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
-export default function VolgogradPage() {
+export default function AnapaPage() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const router = useRouter()
 
@@ -65,9 +65,16 @@ export default function VolgogradPage() {
   }, [])
 
   const images = [
-    "/placeholder.svg?height=600&width=800",
-    "/placeholder.svg?height=600&width=800",
-    "/placeholder.svg?height=600&width=800",
+    "/anapa/photo_2025-09-15_21-02-25.jpg?height=600&width=800",
+    "/anapa/pool.jpg?height=600&width=800",
+    "/anapa/photo_2025-09-15_21-02-16.jpg?height=600&width=800",
+    "/anapa/photo_2025-09-15_21-02-20.jpg?height=600&width=800",
+    "/anapa/toilet.jpg?height=600&width=800",
+    "/anapa/photo_2025-09-15_21-01-43.jpg?height=600&width=800",
+    "/anapa/gym_preview.jpg?height=600&width=800",
+    "/anapa/gym.jpg?height=600&width=800",
+    "/anapa/tennis_preview.jpg?height=600&width=800",
+    "/anapa/preview_hotel.jpg?height=600&width=800",
   ]
 
   const nextImage = () => setCurrentImageIndex((p) => (p + 1) % images.length)
@@ -95,22 +102,23 @@ export default function VolgogradPage() {
           <div className="flex items-center gap-2 mb-4" data-aos="slide-up" data-aos-delay="200">
             <Link href="/" className="text-muted-foreground hover:text-foreground transition-colors duration-300">Главная</Link>
             <span className="text-muted-foreground">/</span>
-            <span>Волгоград</span>
+            <span>Анапа</span>
           </div>
 
           <div className="flex items-center gap-3 mb-6" data-aos="slide-up" data-aos-delay="300">
             <MapPin className="w-6 h-6 text-primary" />
-            <h1 className="text-4xl md:text-5xl font-serif font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">Спортивная база — Волгоград</h1>
+            <h1 className="text-4xl md:text-5xl font-serif font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">Спортивная база — Анапа</h1>
             <div className="ml-4">
-              <Badge variant="secondary" className="text-base px-3 py-2 hover:scale-105 transition-transform duration-300">от 2150₽</Badge>
+              <Badge variant="secondary" className="text-base px-3 py-2 hover:scale-105 transition-transform duration-300">от 2200₽</Badge>
             </div>
           </div>
 
           <div className="flex flex-wrap gap-3 mb-8" data-aos="slide-up" data-aos-delay="400">
-            <Badge variant="secondary" className="hover:scale-105 transition-transform duration-300">Проживание в гостинице</Badge>
-            <Badge variant="secondary" className="hover:scale-105 transition-transform duration-300">3-разовое питание</Badge>
-            <Badge variant="secondary" className="hover:scale-105 transition-transform duration-300">Экскурсии и мемориалы</Badge>
-            <Badge variant="secondary" className="hover:scale-105 transition-transform duration-300">Турниры на арене</Badge>
+            <Badge variant="secondary" className="hover:scale-105 transition-transform duration-300">Проживание 2-3 чел.</Badge>
+            <Badge variant="secondary" className="hover:scale-105 transition-transform duration-300">3-разовое питание (шведская линия)</Badge>
+            <Badge variant="secondary" className="hover:scale-105 transition-transform duration-300">Бассейн с подогревом</Badge>
+            <Badge variant="secondary" className="hover:scale-105 transition-transform duration-300">Сауна</Badge>
+            <Badge variant="secondary" className="hover:scale-105 transition-transform duration-300">Курортный сбор</Badge>
           </div>
         </div>
       </section>
@@ -119,21 +127,21 @@ export default function VolgogradPage() {
       <section className="py-8">
         <div className="container mx-auto px-4">
           <div className="relative max-w-4xl mx-auto" data-aos="zoom-in" data-aos-delay="400">
-            <div className="relative h-96 md:h-[500px] rounded-lg overflow-hidden shadow-2xl hover:shadow-3xl transition-shadow duration-500">
-              <img 
-                src={images[currentImageIndex] || "/placeholder.svg"} 
-                alt={`Волгоград - фото ${currentImageIndex + 1}`} 
-                className="w-full h-full object-cover transition-all duration-500 hover:scale-105" 
+            <div className="relative h-96 md:h-[520px] rounded-lg overflow-hidden shadow-2xl hover:shadow-3xl transition-shadow duration-500">
+              <img
+                src={images[currentImageIndex] || "/placeholder.svg"}
+                alt={`Анапа - фото ${currentImageIndex + 1}`}
+                className="w-full h-full object-cover transition-all duration-500 hover:scale-105"
               />
 
-              <button 
-                onClick={prevImage} 
+              <button
+                onClick={prevImage}
                 className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-all duration-300 hover:scale-110 backdrop-blur-sm"
               >
                 <ChevronLeft className="w-6 h-6" />
               </button>
-              <button 
-                onClick={nextImage} 
+              <button
+                onClick={nextImage}
                 className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-all duration-300 hover:scale-110 backdrop-blur-sm"
               >
                 <ChevronRight className="w-6 h-6" />
@@ -146,9 +154,9 @@ export default function VolgogradPage() {
 
             <div className="flex gap-2 mt-4 overflow-x-auto pb-2" data-aos="slide-up" data-aos-delay="500">
               {images.map((img, idx) => (
-                <button 
-                  key={idx} 
-                  onClick={() => setCurrentImageIndex(idx)} 
+                <button
+                  key={idx}
+                  onClick={() => setCurrentImageIndex(idx)}
                   className={`flex-shrink-0 w-20 h-16 rounded-md overflow-hidden border-2 hover:scale-105 transition-all duration-300 ${
                     idx === currentImageIndex ? "border-primary shadow-lg" : "border-transparent hover:border-primary/50"
                   }`}
@@ -166,16 +174,19 @@ export default function VolgogradPage() {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2" data-aos="fade-right" data-aos-delay="200">
-              <h2 className="text-3xl font-serif font-bold mb-6 bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">О базе — Волгоград</h2>
+              <h2 className="text-3xl font-serif font-bold mb-6 bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">О базе — Анапа</h2>
               <div className="prose prose-gray max-w-none space-y-6">
                 <p className="text-muted-foreground text-lg leading-relaxed hover:text-foreground transition-colors duration-300">
-                  В пакет (от 2150₽) входит проживание в гостиницах «НОЙ» или «Волга-Волга», трёхразовое питание и курортный сбор. Для команд доступны комфортные номера и полный спектр сервисов.
+                  Гостиница «Золотое Руно» — идеальное место для тренировочных сборов в Анапе. В пакет (от 2200₽/чел) входит проживание в номерах на 2—3 человека, трёхразовое питание по системе «шведская линия», а также курортный сбор.
                 </p>
                 <p className="text-muted-foreground text-lg leading-relaxed hover:text-foreground transition-colors duration-300">
-                  Для участников предусмотрено бесплатное посещение музея «Сталинградская битва» для детей до 17 лет, а также посещение Мемориала на Мамаевом кургане. Турниры и сборы проходят на стадионе «Волгоград-Арена», в комплексе «Зенит», а в зимнее время — в футбольном манеже г. Никитина (г. Волжский).
+                  На территории — бассейн с подогревом и собственный пляж для восстановления после тренировок. Гостиница расположена примерно в 100 метрах от моря, а турнирные матчи и тренировки проходят в 100 метрах от отеля на базе ЛОК «Витязь».
                 </p>
                 <p className="text-muted-foreground text-lg leading-relaxed hover:text-foreground transition-colors duration-300">
-                  Организуем трансфер, питание, медицинское сопровождение и тренировочные сессии под ключ.
+                  Для проведения тренировок и турниров есть всё: футбольное поле, баскетбольная и теннисная прощадка, тренажёрный зал, воркаут зоны и многое другое!
+                </p>
+                <p className="text-muted-foreground text-lg leading-relaxed hover:text-foreground transition-colors duration-300">
+                  Мы предлагаем готовые пакеты для команд: проживание, питание, спортивная инфраструктура и организационная поддержка — всё включено.
                 </p>
               </div>
             </div>
@@ -188,19 +199,19 @@ export default function VolgogradPage() {
                   <div className="space-y-3">
                     <div className="flex items-center gap-3 hover:translate-x-2 transition-transform duration-300">
                       <Users className="w-5 h-5 text-primary" />
-                      <span className="text-base">Команды до 50 человек</span>
+                      <span className="text-base">Номера на 2—3 человека</span>
                     </div>
                     <div className="flex items-center gap-3 hover:translate-x-2 transition-transform duration-300">
                       <MapPin className="w-5 h-5 text-primary" />
-                      <span className="text-base">Близко к ключевым спортобъектам</span>
+                      <span className="text-base">~100 м до моря</span>
                     </div>
                     <div className="flex items-center gap-3 hover:translate-x-2 transition-transform duration-300">
-                      <Dumbbell className="w-5 h-5 text-primary" />
-                      <span className="text-base">Тренажерные и манежи</span>
+                      <Waves className="w-5 h-5 text-primary" />
+                      <span className="text-base">Бассейн 25 метров</span>
                     </div>
                     <div className="flex items-center gap-3 hover:translate-x-2 transition-transform duration-300">
                       <UtensilsCrossed className="w-5 h-5 text-primary" />
-                      <span className="text-base">3-разовое питание</span>
+                      <span className="text-base">3-разовое питание (шведская линия)</span>
                     </div>
                     <div className="flex items-center gap-3 hover:translate-x-2 transition-transform duration-300">
                       <Car className="w-5 h-5 text-primary" />
@@ -209,10 +220,11 @@ export default function VolgogradPage() {
                   </div>
 
                   <div className="mt-6 text-center">
-                    <div className="text-2xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">от 2150₽</div>
+                    <div className="text-2xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">от 2200₽/чел</div>
                     <Button 
-                      className="w-full mt-2 py-4 text-lg hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary" 
-                      onClick={scrollToBooking}
+                      size="lg" 
+                      onClick={scrollToBooking} 
+                      className="text-lg py-6 px-8 hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary"
                     >
                       Забронировать базу
                     </Button>
@@ -237,48 +249,51 @@ export default function VolgogradPage() {
                 icon: Dumbbell,
                 title: "Спортивные объекты",
                 features: [
-                  "Стадион «Волгоград-Арена»",
-                  "Футбольные манежи и залы",
-                  "Тренажёрные залы"
+                  "Футбольное и баскетбольное поле",
+                  "Тренажерный зал",
+                  "Воркаут площадки",
+                  "Площадка для тенниса"
                 ]
               },
               {
-                icon: Shield,
-                title: "Безопасность",
+                icon: Waves,
+                title: "Восстановление",
                 features: [
-                  "Охрана",
-                  "Медицинские пункты"
+                  "Бассейн 25 метров",
+                  "Сауна",
+                  "Боулинг центр"
                 ]
               },
               {
                 icon: UtensilsCrossed,
-                title: "Питание и проживание",
+                title: "Питание",
                 features: [
-                  "Гостиницы «НОЙ», «Волга-Волга»",
-                  "3-разовое питание"
+                  "Трёхразовое питание — шведская линия",
+                  "Меню для спортсменов"
                 ]
               },
               {
                 icon: Users,
-                title: "Удобства для команд",
+                title: "Проживание",
                 features: [
-                  "Комнаты для команд",
-                  "Прачечная, комната для инвентаря"
+                  "Номера на 2—3 человека",
+                  "Современные удобства"
                 ]
               },
               {
-                icon: MapPin,
-                title: "Культурная программа",
+                icon: Shield,
+                title: "Безопасность и сервис",
                 features: [
-                  "Посещение Музея «Сталинградская битва»",
-                  "Мемориал Мамаев Курган"
+                  "Охраняемая территория",
+                  "Медицинская помощь по запросу"
                 ]
               },
               {
                 icon: Car,
                 title: "Транспорт",
                 features: [
-                  "Трансфер от/до аэропорта и вокзала"
+                  "Трансфер от/до вокзала и аэропорта",
+                  "Парковка для автобусов"
                 ]
               }
             ].map((facility, index) => (
@@ -314,10 +329,10 @@ export default function VolgogradPage() {
       <section className="py-16">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-4xl font-serif font-bold mb-6 bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent" data-aos="slide-up">
-            Готовы забронировать базу в Волгограде?
+            Готовы забронировать базу в Анапе?
           </h2>
           <p className="text-muted-foreground mb-8 max-w-2xl mx-auto text-lg leading-relaxed" data-aos="fade" data-aos-delay="200">
-            Оставьте заявку — менеджер рассчитает пакет и проконсультирует по программам и экскурсиям.
+            Оставьте заявку — наш менеджер рассчитает пакет и ответит на все вопросы.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center" data-aos="zoom-in" data-aos-delay="400">
             <Button 

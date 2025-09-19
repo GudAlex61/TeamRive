@@ -1,11 +1,14 @@
+// app/layout.tsx
 import type React from "react"
 import type { Metadata } from "next"
+import Script from "next/script"
 import { Inter, Playfair_Display } from "next/font/google"
 import "./globals.css"
+import AnimationBoot from "./components/AnimationBoot.client"
 
 const inter = Inter({
   subsets: ["latin", "cyrillic"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["300", "400", "500", "600", "700", "900"],
   variable: "--font-inter",
   display: "swap",
 })
@@ -40,7 +43,15 @@ html {
 }
         `}</style>
       </head>
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased">
+        {children}
+
+        {/* Скрипт анимаций — положи public/scripts/animation.js */}
+        <Script src="/scripts/animation.js" strategy="afterInteractive" />
+
+        {/* Клиентский бут — перезапускает/восстанавливает observer при навигации */}
+        <AnimationBoot />
+      </body>
     </html>
   )
 }
