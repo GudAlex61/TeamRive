@@ -1,7 +1,7 @@
 // app/anapa/page.tsx
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -13,6 +13,10 @@ export default function AnapaPage() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [modalOpen, setModalOpen] = useState(false)
   const router = useRouter()
+
+  // touch navigation refs
+  const touchStartX = useRef<number | null>(null)
+  const touchStartY = useRef<number | null>(null)
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -82,6 +86,7 @@ export default function AnapaPage() {
   const openModalAt = (idx: number) => {
     setCurrentImageIndex(idx)
     setModalOpen(true)
+    // блокируем прокрутку страницы, чтобы не было сдвигов
     document.body.style.overflow = "hidden"
   }
   const closeModal = () => {
@@ -123,6 +128,42 @@ export default function AnapaPage() {
       document.head.removeChild(style)
     }
   }, [])
+
+  // Touch handlers for modal (swipe)
+  const onTouchStart = (e: React.TouchEvent) => {
+    if (!e.touches || e.touches.length === 0) return
+    touchStartX.current = e.touches[0].clientX
+    touchStartY.current = e.touches[0].clientY
+  }
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return
+    const touch = e.changedTouches && e.changedTouches[0]
+    if (!touch) return
+    const dx = touch.clientX - touchStartX.current
+    const dy = touch.clientY - touchStartY.current
+    const absDx = Math.abs(dx)
+    const absDy = Math.abs(dy)
+    const THRESHOLD = 40 // px
+    // horizontal swipe
+    if (absDx > THRESHOLD && absDx > absDy) {
+      if (dx < 0) {
+        nextImage()
+      } else {
+        prevImage()
+      }
+    }
+    touchStartX.current = null
+    touchStartY.current = null
+  }
+
+  // Click halves navigation (left/right area)
+  const onModalAreaClick = (e: React.MouseEvent) => {
+    // determine click x relative to viewport width
+    const x = e.clientX
+    const vw = window.innerWidth
+    if (x < vw / 2) prevImage()
+    else nextImage()
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -172,18 +213,20 @@ export default function AnapaPage() {
                 alt={`Анапа - фото ${currentImageIndex + 1}`}
                 className="max-w-full max-h-full object-contain transition-all duration-500 cursor-zoom-in"
                 onClick={() => openModalAt(currentImageIndex)}
+                draggable={false}
               />
 
+              {/* Desktop arrows (visible on md+) */}
               <button
                 onClick={prevImage}
-                className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full transition-all duration-300 hover:scale-110 backdrop-blur-sm"
+                className="hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full transition-all duration-300 hover:scale-110 backdrop-blur-sm"
                 aria-label="Previous"
               >
                 <ChevronLeft className="w-6 h-6" />
               </button>
               <button
                 onClick={nextImage}
-                className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full transition-all duration-300 hover:scale-110 backdrop-blur-sm"
+                className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full transition-all duration-300 hover:scale-110 backdrop-blur-sm"
                 aria-label="Next"
               >
                 <ChevronRight className="w-6 h-6" />
@@ -201,7 +244,7 @@ export default function AnapaPage() {
                   onClick={() => setCurrentImageIndex(idx)}
                   className={`flex-shrink-0 w-20 h-16 rounded-md overflow-hidden border-2 transition-all duration-300 ${idx === currentImageIndex ? "border-primary shadow-lg" : "border-transparent"}`}
                 >
-                  <img src={img} alt={`thumb ${idx + 1}`} className="w-full h-full object-cover" />
+                  <img src={img} alt={`thumb ${idx + 1}`} className="w-full h-full object-cover" draggable={false} />
                 </button>
               ))}
             </div>
@@ -339,24 +382,110 @@ export default function AnapaPage() {
 
       {/* Fullscreen modal for gallery */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-          <button className="absolute top-6 right-6 z-60 bg-black/30 text-white rounded-full p-2" onClick={closeModal} aria-label="Close">
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
+          // блокируем скролл и ловим клики/тачи
+          onTouchStart={onTouchStart}
+          onTouchEnd={onTouchEnd}
+          // на десктопе клик по фону не должен листать, поэтому обработку клика делаем на внутренней области
+        >
+          {/* Close button (always visible, top-right) */}
+          <button
+            className="absolute top-4 right-4 z-80 bg-black/40 text-white rounded-full p-3 md:p-2 shadow-lg"
+            onClick={closeModal}
+            aria-label="Close"
+          >
             ✕
           </button>
 
-          <button className="absolute left-6 top-1/2 -translate-y-1/2 z-60 p-2 bg-black/30 rounded-full text-white" onClick={prevImage} aria-label="Prev">
+          {/* Desktop visible arrows (md+) - kept for keyboard/desktop users */}
+          <button
+            onClick={prevImage}
+            className="hidden md:flex absolute left-6 top-1/2 -translate-y-1/2 z-70 p-3 bg-black/30 rounded-full text-white"
+            aria-label="Prev"
+          >
             ‹
           </button>
-          <div className="max-w-full max-h-full flex items-center justify-center">
-            <img src={images[currentImageIndex]} alt={`Large ${currentImageIndex + 1}`} className="max-w-full max-h-[90vh] object-contain" />
-          </div>
-          <button className="absolute right-6 top-1/2 -translate-y-1/2 z-60 p-2 bg-black/30 rounded-full text-white" onClick={nextImage} aria-label="Next">
+
+          <button
+            onClick={nextImage}
+            className="hidden md:flex absolute right-6 top-1/2 -translate-y-1/2 z-70 p-3 bg-black/30 rounded-full text-white"
+            aria-label="Next"
+          >
             ›
           </button>
 
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/80 text-sm">Esc — выйти, свайп/клики по стрелкам — листать</div>
+          {/* Clickable halves on mobile/any device — they are transparent and cover left/right half.
+              z-index set below close button so close stays clickable. */}
+          <div
+            className="absolute inset-0 z-60 flex"
+            // onClick на обёртке может конфликтовать с внутренними элементами, поэтому разделяем по половинам
+            aria-hidden
+          >
+            <div
+              className="w-1/2 h-full"
+              onClick={(e) => {
+                e.stopPropagation()
+                prevImage()
+              }}
+            />
+            <div
+              className="w-1/2 h-full"
+              onClick={(e) => {
+                e.stopPropagation()
+                nextImage()
+              }}
+            />
+          </div>
+
+          <div className="max-w-full max-h-full flex items-center justify-center px-4" onClick={(e) => {
+            // если клик внутри изображения — определяем сторону и листаем (для мыши)
+            // но чтобы крестик работал, он выше по z-index
+            // предотвращаем всплытие к панели половин (они ниже по z-index)
+            e.stopPropagation()
+          }}>
+            <img
+              src={images[currentImageIndex]}
+              alt={`Large ${currentImageIndex + 1}`}
+              className="max-w-[100vw] max-h-[100dvh] object-contain"
+              style={{ width: "auto", height: "auto", touchAction: "manipulation" }}
+              draggable={false}
+            />
+          </div>
+
+          {/* Footer hint */}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/80 text-sm z-80 px-3 py-1 bg-black/30 rounded-md">
+            Esc — выйти • Нажмите по левой/правой стороне экрана или свайпните для листания
+          </div>
         </div>
       )}
+
+      <style jsx>{`
+        /* Ensure modal image won't stretch on weird viewports; use contain and dvh for mobile */
+        .object-contain {
+          /* make sure it respects both width and height constraints */
+          max-width: 100vw;
+          max-height: 100dvh;
+          object-fit: contain;
+        }
+
+        /* On some older mobile browsers svh/dvh might not be supported; provide fallback */
+        @supports not (height: 100dvh) {
+          .object-contain {
+            max-height: 100vh;
+          }
+        }
+
+        /* slightly enlarge close button on small devices for easier tapping */
+        @media (max-width: 640px) {
+          button[aria-label="Close"] {
+            top: 10px;
+            right: 10px;
+            padding: 10px;
+            font-size: 18px;
+          }
+        }
+      `}</style>
     </div>
   )
 }

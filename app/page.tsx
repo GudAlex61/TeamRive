@@ -2,7 +2,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect, useRef, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -41,11 +40,9 @@ export default function HomePage() {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const router = useRouter()
 
-  // refs (для позиции попапа и клика вне)
   const rangeControlRef = useRef<HTMLDivElement | null>(null)
   const popupRef = useRef<HTMLDivElement | null>(null)
 
-  // IntersectionObserver-based AOS replacement
   useEffect(() => {
     if (typeof window === "undefined") return
     const timeouts: number[] = []
@@ -60,23 +57,14 @@ export default function HomePage() {
             const doAnimate = () => {
               el.classList.add("aos-animate")
             }
-            if (el.hasAttribute("data-aos-onload")) {
-              const t = window.setTimeout(doAnimate, delay)
-              timeouts.push(t)
-            } else {
-              const t = window.setTimeout(() => {
-                doAnimate()
-              }, delay)
-              timeouts.push(t)
-            }
+            const t = window.setTimeout(doAnimate, delay)
+            timeouts.push(t)
             observer.unobserve(el)
           }
         })
       },
       {
         threshold: 0.12,
-        root: null,
-        rootMargin: "0px",
       }
     )
 
@@ -92,14 +80,11 @@ export default function HomePage() {
     }
   }, [])
 
-  // Обработчик перехода с параметром scrollTo=booking
   useEffect(() => {
     if (typeof window === "undefined") return
     try {
       const params = new URLSearchParams(window.location.search)
       if (params.get("scrollTo") === "booking") {
-        // НЕ делаем window.scrollTo(0,0) — это вызывало резкий сдвиг вверх.
-        // Даем страницe время смонтироваться, затем плавно скроллим к форме.
         const timer = window.setTimeout(() => {
           const bookingSection = document.getElementById("booking-form")
           bookingSection?.scrollIntoView({ behavior: "smooth", block: "start" })
@@ -112,30 +97,18 @@ export default function HomePage() {
     } catch {}
   }, [])
 
-  const toggleFaq = (index: number) => {
-    setOpenFaq(openFaq === index ? null : index)
-  }
-
-  const navigateToBase = (baseName: string) => {
-    router.push(`/${baseName}`)
-  }
-
-  const scrollToBooking = () => {
-    const bookingSection = document.getElementById("booking-form")
-    bookingSection?.scrollIntoView({ behavior: "smooth", block: "start" })
-  }
+  const toggleFaq = (index: number) => setOpenFaq(openFaq === index ? null : index)
+  const navigateToBase = (baseName: string) => router.push(`/${baseName}`)
+  const scrollToBooking = () => document.getElementById("booking-form")?.scrollIntoView({ behavior: "smooth", block: "start" })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
     setSubmitError(null)
-
     try {
       const response = await fetch("/api/submit-booking", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,
@@ -147,156 +120,69 @@ export default function HomePage() {
           message: formData.additional || "",
         }),
       })
-
-      if (!response.ok) {
-        throw new Error("Failed to submit booking")
-      }
-
+      if (!response.ok) throw new Error("Failed to submit booking")
       setIsSubmitted(true)
-
       setTimeout(() => {
         setIsSubmitted(false)
-        setFormData({
-          name: "",
-          phone: "",
-          email: "",
-          base: "",
-          checkin: "",
-          checkout: "",
-          people: "",
-          sport: "",
-          additional: "",
-        })
+        setFormData({ name: "", phone: "", email: "", base: "", checkin: "", checkout: "", people: "", sport: "", additional: "" })
       }, 3000)
     } catch (error) {
       console.error("Error submitting booking:", error)
       setSubmitError("Произошла ошибка при отправке заявки. Пожалуйста, попробуйте еще раз.")
-    } finally {
-      setIsSubmitting(false)
-    }
+    } finally { setIsSubmitting(false) }
   }
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }))
-  }
+  const handleInputChange = (field: string, value: string) => setFormData((prev) => ({ ...prev, [field]: value }))
 
-  /* ---------------- Date range picker (single-month) ---------------- */
   const [calendarOpen, setCalendarOpen] = useState(false)
-  const [calendarMonth, setCalendarMonth] = useState(() => {
-    const now = new Date()
-    return new Date(now.getFullYear(), now.getMonth(), 1)
-  })
-  const [selecting, setSelecting] = useState<"start" | "end">("start")
-
+  const [calendarMonth, setCalendarMonth] = useState(() => { const now = new Date(); return new Date(now.getFullYear(), now.getMonth(), 1) })
+  const [selecting, setSelecting] = useState<"start"|"end">("start")
   const selectedStart = useMemo(() => (formData.checkin ? new Date(formData.checkin) : null), [formData.checkin])
   const selectedEnd = useMemo(() => (formData.checkout ? new Date(formData.checkout) : null), [formData.checkout])
 
-  const startOfDay = (d: Date) => {
-    const x = new Date(d)
-    x.setHours(0, 0, 0, 0)
-    return x
-  }
+  const startOfDay = (d: Date) => { const x = new Date(d); x.setHours(0,0,0,0); return x }
+  const formatISO = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`
+  const isSameDay = (a: Date|null, b: Date|null) => !!a && !!b && a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate()
+  const dayInRange = (d: Date) => selectedStart && selectedEnd && startOfDay(d).getTime() >= startOfDay(selectedStart).getTime() && startOfDay(d).getTime() <= startOfDay(selectedEnd).getTime()
 
-  const formatISO = (d: Date) => {
-    const y = d.getFullYear()
-    const m = `${d.getMonth() + 1}`.padStart(2, "0")
-    const day = `${d.getDate()}`.padStart(2, "0")
-    return `${y}-${m}-${day}`
-  }
-
-  const isSameDay = (a: Date | null, b: Date | null) => {
-    if (!a || !b) return false
-    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
-  }
-
-  function getMonthMatrix(year: number, month: number) {
+  function getMonthMatrix(year:number, month:number) {
     const first = new Date(year, month, 1)
-    const firstWeekday = (first.getDay() + 6) % 7 // Monday=0
-    const daysInMonth = new Date(year, month + 1, 0).getDate()
+    const firstWeekday = (first.getDay()+6)%7
+    const daysInMonth = new Date(year, month+1, 0).getDate()
     const prevDays = firstWeekday
     const totalCells = prevDays + daysInMonth
-    const rows = Math.ceil(totalCells / 7)
-    const matrix: (Date | null)[][] = []
+    const rows = Math.ceil(totalCells/7)
+    const matrix:(Date|null)[][] = []
     let dayCounter = 1 - prevDays
-    for (let r = 0; r < rows; r++) {
-      const week: (Date | null)[] = []
-      for (let c = 0; c < 7; c++) {
-        if (dayCounter < 1) {
-          const d = new Date(year, month, dayCounter)
-          week.push(d)
-        } else if (dayCounter > daysInMonth) {
-          const d = new Date(year, month, dayCounter)
-          week.push(d)
-        } else {
-          week.push(new Date(year, month, dayCounter))
-        }
+    for (let r=0; r<rows; r++) {
+      const week:(Date|null)[] = []
+      for (let c=0; c<7; c++) {
+        week.push(new Date(year, month, dayCounter))
         dayCounter++
       }
       matrix.push(week)
     }
     return matrix
   }
-
   const monthMatrix = useMemo(() => getMonthMatrix(calendarMonth.getFullYear(), calendarMonth.getMonth()), [calendarMonth])
-
-  const dayInRange = (d: Date) => {
-    if (!selectedStart || !selectedEnd) return false
-    const s = startOfDay(selectedStart).getTime()
-    const e = startOfDay(selectedEnd).getTime()
-    const t = startOfDay(d).getTime()
-    return t >= s && t <= e
-  }
 
   const handleDayClick = (d: Date) => {
     const clicked = startOfDay(d)
-    // if no start & end -> set start, switch to selecting end, don't close
-    if (!formData.checkin && !formData.checkout) {
-      handleInputChange("checkin", formatISO(clicked))
-      setSelecting("end")
-      return
-    }
-
-    // if start exists and no end -> set end (ensure order), DO NOT close (user will press Готово)
+    if (!formData.checkin && !formData.checkout) { handleInputChange("checkin", formatISO(clicked)); setSelecting("end"); return }
     if (formData.checkin && !formData.checkout) {
       const start = new Date(formData.checkin)
-      const startMs = startOfDay(start).getTime()
-      const clickedMs = clicked.getTime()
-      if (clickedMs < startMs) {
-        handleInputChange("checkin", formatISO(clicked))
-        handleInputChange("checkout", formatISO(start))
-      } else {
-        handleInputChange("checkout", formatISO(clicked))
-      }
-      setSelecting("start")
-      // DO NOT close here — wait for "Готово" or click outside
-      return
+      if (clicked.getTime() < startOfDay(start).getTime()) { handleInputChange("checkin", formatISO(clicked)); handleInputChange("checkout", formatISO(start)) }
+      else handleInputChange("checkout", formatISO(clicked))
+      setSelecting("start"); return
     }
-
-    // if both selected -> start new selection with clicked as start
-    if (formData.checkin && formData.checkout) {
-      handleInputChange("checkin", formatISO(clicked))
-      handleInputChange("checkout", "")
-      setSelecting("end")
-      return
-    }
+    handleInputChange("checkin", formatISO(clicked)); handleInputChange("checkout",""); setSelecting("end")
   }
-
-  const prevMonth = () => {
-    setCalendarMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))
-  }
-  const nextMonth = () => {
-    setCalendarMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))
-  }
-
+  const prevMonth = () => setCalendarMonth(m => new Date(m.getFullYear(), m.getMonth()-1,1))
+  const nextMonth = () => setCalendarMonth(m => new Date(m.getFullYear(), m.getMonth()+1,1))
   useEffect(() => {
-    // close on click outside popup
     if (!calendarOpen) return
     function onDoc(e: MouseEvent) {
-      const target = e.target as Node
-      if (popupRef.current && rangeControlRef.current && !popupRef.current.contains(target) && !rangeControlRef.current.contains(target)) {
+      if (popupRef.current && rangeControlRef.current && !popupRef.current.contains(e.target as Node) && !rangeControlRef.current.contains(e.target as Node)) {
         setCalendarOpen(false)
       }
     }
@@ -304,57 +190,32 @@ export default function HomePage() {
     return () => document.removeEventListener("mousedown", onDoc)
   }, [calendarOpen])
 
-  /* ---- segmented base switch helper ---- */
-  const BASES = [
-    { id: "anapa", label: "Анапа" },
-    { id: "volgograd", label: "Волгоград" },
-    { id: "tuapse", label: "Туапсе" },
-  ]
-
-  const onSelectBase = (id: string) => {
-    handleInputChange("base", id)
-  }
-
-  /* ------------------------------- */
+  const BASES = [{ id:"anapa", label:"Анапа"},{id:"volgograd", label:"Волгоград"},{id:"tuapse", label:"Туапсе"}]
+  const onSelectBase = (id:string) => handleInputChange("base", id)
 
   return (
-    <div className="min-h-screen bg-background">
+    // сменил min-h-screen на h-full и добавил явный класс root-wrapper для более точного CSS контроля
+    <div className="root-wrapper h-full bg-background overflow-x-hidden">
       {/* HERO */}
-      <section className="relative h-[80vh] sm:h-screen flex items-center justify-center overflow-hidden">
+      <section className="relative h-[100dvh] hero flex items-center justify-center overflow-hidden" style={{ minHeight: "100dvh" }}>
         <div className="absolute inset-0 z-0">
-          {/* left / middle / right — middle немного шире */}
-          <img
-            src="/anapa/photo_2025-09-15_21-01-43.jpg?height=1080&width=1920"
-            alt="Спорт 1"
-            className="absolute inset-0 w-full h-full object-cover"
-            style={{ clipPath: "polygon(0 0, 36% 0, 24% 100%, 0 100%)" }}
-            data-aos="fade"
-          />
-          <img
-            src="/football.jpg?.jpg?height=1080&width=1920"
-            alt="Спорт 2"
-            className="absolute inset-0 w-full h-full object-cover"
-            style={{ clipPath: "polygon(36% 0, 76% 0, 76% 100%, 24% 100%)" }}
-            data-aos="fade"
-          />
-          <img
-            src="/anapa/photo_2025-09-15_21-01-43.jpg?height=1080&width=1920"
-            alt="Спорт 3"
-            className="absolute inset-0 w-full h-full object-cover"
-            style={{ clipPath: "polygon(76% 0, 100% 0, 100% 100%, 64% 100%)" }}
-            data-aos="fade"
-          />
+          <img src="/anapa/photo_2025-09-15_21-01-43.jpg?height=1080&width=1920" alt="Спорт 1" className="absolute inset-0 w-full h-full object-cover" style={{ clipPath: "polygon(0 0, 36% 0, 24% 100%, 0 100%)" }} data-aos="fade" />
+          <img src="/football.jpg?.jpg?height=1080&width=1920" alt="Спорт 2" className="absolute inset-0 w-full h-full object-cover" style={{ clipPath: "polygon(36% 0, 76% 0, 76% 100%, 24% 100%)" }} data-aos="fade" />
+          <img src="/anapa/photo_2025-09-15_21-01-43.jpg?height=1080&width=1920" alt="Спорт 3" className="absolute inset-0 w-full h-full object-cover" style={{ clipPath: "polygon(76% 0, 100% 0, 100% 100%, 64% 100%)" }} data-aos="fade" />
           <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/50 to-primary/20" />
         </div>
-
         <div className="relative z-10 text-center text-white max-w-5xl mx-auto px-4" data-aos="fade" data-aos-onload>
-          <h1 className="font-serif text-3xl sm:text-5xl md:text-6xl lg:text-8xl font-bold mb-6 leading-tight bg-gradient-to-r from-white via-white to-primary/80 bg-clip-text text-transparent" data-aos="slide-up" data-aos-delay="120">
+          <h1
+            className="font-serif font-bold mb-6 leading-tight bg-gradient-to-r from-white via-white to-primary/80 bg-clip-text text-transparent"
+            data-aos="slide-up"
+            data-aos-delay="120"
+            style={{ fontSize: "clamp(28px, 6vw, 64px)" }}
+          >
             Организуйте идеальные спортивные сборы
           </h1>
           <p className="text-lg sm:text-2xl md:text-3xl mb-8 text-gray-200 max-w-3xl mx-auto leading-relaxed font-medium" data-aos="slide-up" data-aos-delay="220">
             Арендуйте современные базы в Анапе, Волгограде и Туапсе для достижения победных результатов
           </p>
-
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center" data-aos="zoom-in" data-aos-delay="320">
             <Button type="button" size="lg" className="hero-glow-button group relative overflow-hidden mx-auto" onClick={scrollToBooking}>
               <span className="relative z-10 flex items-center gap-3">
@@ -506,7 +367,6 @@ export default function HomePage() {
                     </div>
                   </div>
 
-                  {/* --- Email (вставлено под имя и телефон, растянуто на всю строку) */}
                   <div data-aos="slide-up">
                     <Label htmlFor="email" className="text-base sm:text-lg font-semibold text-gray-800 mb-2 block">Email *</Label>
                     <Input
@@ -521,7 +381,6 @@ export default function HomePage() {
                     />
                   </div>
 
-                  {/* Выбор базы — SEGMENTED SWITCH (растянут, центрирован, отступы от краёв формы) */}
                   <div className="space-y-4 sm:space-y-6">
                     <div>
                       <Label htmlFor="base" className="text-base sm:text-lg font-semibold text-gray-800 mb-2 block">Выбор базы *</Label>
@@ -568,8 +427,8 @@ export default function HomePage() {
                           className="range-picker relative rounded-2xl border-2 border-gray-200 bg-white/90 backdrop-blur-sm h-12 sm:h-14 px-3 sm:px-4 flex items-center justify-between gap-3 cursor-pointer select-none hover:border-primary/50 transition-all duration-300"
                           role="button"
                           tabIndex={0}
-                          onPointerDown={(e) => e.preventDefault()} /* prevent focus/scroll jump on pointer */
-                          onMouseDown={(e) => e.preventDefault()} /* prevent focus/scroll jump */
+                          onPointerDown={(e) => e.preventDefault()}
+                          onMouseDown={(e) => e.preventDefault()}
                           onClick={() => {
                             setCalendarOpen((p) => !p)
                           }}
@@ -587,34 +446,32 @@ export default function HomePage() {
                             <div className="text-sm sm:text-base text-gray-600">Выберите даты</div>
                           </div>
 
-                          <div className="text-sm sm:text-base text-gray-700 flex items-center gap-3">
+                          <div className="text-sm sm:text-base text-gray-700 flex flex-wrap items-center gap-1 sm:gap-3" style={{ minWidth: 0 }}>
                             {formData.checkin ? (
-                              <div className="px-2 py-0.5 sm:px-3 sm:py-1 rounded-md bg-red-50 text-red-700 border border-red-100 text-xs sm:text-sm">
+                              <div className="px-1 py-0.5 sm:px-2 sm:py-1 rounded-md bg-red-50 text-red-700 border border-red-100 text-xs sm:text-sm whitespace-nowrap overflow-hidden text-ellipsis max-w-[120px] sm:max-w-none">
                                 {new Date(formData.checkin).toLocaleDateString('ru-RU')}
                               </div>
                             ) : (
-                              <div className="text-gray-400 text-xs sm:text-sm">Дата заезда</div>
+                              <div className="text-gray-400 text-xs sm:text-sm whitespace-nowrap">Дата заезда</div>
                             )}
 
-                            <span className="text-gray-300 text-xs sm:text-sm">—</span>
+                            <span className="text-gray-300 text-xs sm:text-sm hidden sm:inline">—</span>
 
                             {formData.checkout ? (
-                              <div className="px-2 py-0.5 sm:px-3 sm:py-1 rounded-md bg-red-50 text-red-700 border border-red-100 text-xs sm:text-sm">
+                              <div className="px-1 py-0.5 sm:px-2 sm:py-1 rounded-md bg-red-50 text-red-700 border border-red-100 text-xs sm:text-sm whitespace-nowrap overflow-hidden text-ellipsis max-w-[120px] sm:max-w-none">
                                 {new Date(formData.checkout).toLocaleDateString('ru-RU')}
                               </div>
                             ) : (
-                              <div className="text-gray-400 text-xs sm:text-sm">Дата выезда</div>
+                              <div className="text-gray-400 text-xs sm:text-sm whitespace-nowrap">Дата выезда</div>
                             )}
                           </div>
                         </div>
 
-                        {/* Popup */}
                         {calendarOpen && (
                           <div
                             ref={popupRef}
                             className="drp-popup mt-2"
                             data-aos="zoom-in"
-                            // Prevent this popup itself from ever keeping focus and causing scroll
                             tabIndex={-1}
                             onFocus={(e) => { (e.currentTarget as HTMLElement).blur() }}
                             onMouseDown={(e) => e.preventDefault()}
@@ -670,11 +527,11 @@ export default function HomePage() {
                                       <div
                                         key={`m0-${wi}-${di}`}
                                         className={classes}
-                                        onMouseDown={(e) => e.preventDefault()} /* prevent focus-induced scroll */
+                                        onMouseDown={(e) => e.preventDefault()}
                                         onPointerDown={(e) => e.preventDefault()}
                                         onClick={() => handleDayClick(d)}
                                         title={d.toLocaleDateString("ru-RU")}
-                                        tabIndex={-1} /* don't allow focusing by keyboard/navigation to avoid unexpected scroll */
+                                        tabIndex={-1}
                                         onFocus={(e) => { (e.currentTarget as HTMLElement).blur() }}
                                         role="button"
                                         aria-pressed={isStart || isEnd}
@@ -805,6 +662,59 @@ export default function HomePage() {
 
       {/* Calendar styles (single month, no hover transform on dates) + mobile / button behavior */}
       <style jsx global>{`
+        /*
+         * Основное решение для удаления лишнего скролла:
+         * 1) Принудительно оставляем вертикальную прокрутку только на body/html
+         * 2) Делаем контейнеры внутри видимыми по вертикали (overflow-y: visible !important)
+         * 3) Исключаем из этого правила popup календаря (.drp-popup), textarea и явные элементы, которым нужен скролл
+         *
+         * Это универсальный, но осторожный подход — он устраняет внутренние контейнеры, создающие дополнительные полосы прокрутки.
+         */
+
+        html, body {
+          height: 100%;
+          margin: 0;
+          padding: 0;
+          overflow-x: hidden;
+          /* главная вертикальная полоса прокрутки — на body */
+          overflow-y: auto;
+        }
+
+        /* Next.js root */
+        #__next, #__next > div {
+          height: 100%;
+          min-height: 100%;
+          overflow: visible !important;
+        }
+
+        /* Корневой wrapper — пусть будет высотой 100% страницы (чтобы не создавал внутренний скролл) */
+        .root-wrapper {
+          min-height: 100%;
+          height: 100%;
+          overflow: visible !important;
+        }
+
+        /*
+         * СКРЫВАЕМ любые внутренние вертикальные скроллы: делаем overflow-y visible
+         * (включая элементы, у которых по ошибке выставлен overflow: auto/scroll).
+         * Исключаем селекторы, которым нужен собственный скролл:
+         * - .drp-popup (попап календаря)
+         * - textarea (для длинного текста)
+         * - .allow-scroll (специальный класс — если нужно дать элементу внутренний скролл, добавьте этот класс)
+         */
+        body *:not(.drp-popup):not(.drp-popup *):not(textarea):not(.allow-scroll):not(.allow-scroll *) {
+          overflow-y: visible !important;
+          /* Убираем возможные стили прокрутки, которые мог добавлять компонент */
+          scrollbar-width: none !important;
+        }
+
+        /* для drp-popup и textarea оставляем стандартный поведение (скролл внутри) */
+        .drp-popup, textarea, .allow-scroll {
+          overflow-y: auto !important;
+          -webkit-overflow-scrolling: touch;
+        }
+
+        /* calendar popup */
         .drp-popup {
           position: absolute;
           z-index: 70;
@@ -849,16 +759,15 @@ export default function HomePage() {
         }
 
         .drp-cell--selected {
-          background: #dc2626; /* strong red */
+          background: #dc2626;
           color: white;
           font-weight: 700;
           box-shadow: 0 6px 18px rgba(220,38,38,0.14);
         }
 
-        /* days inside selected range (light red) */
         .drp-cell--inrange {
-          background: #fff2f2; /* very light red/pink */
-          color: #b91c1c; /* darker red text */
+          background: #fff2f2;
+          color: #b91c1c;
         }
 
         .drp-actions { display:flex; gap:8px; justify-content:space-between; margin-top:10px; align-items:center }
@@ -889,20 +798,16 @@ export default function HomePage() {
           -webkit-tap-highlight-color: transparent;
         }
 
-        /* IMPORTANT: hover styles only on devices that actually support hover.
-           Это предотвращает "первый тап — только hover" на тач-устройствах. */
         @media (hover: hover) and (pointer: fine) {
           .drp-cell:hover { background: #f8fafc; }
           .hero-glow-button:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 0 28px rgba(220,38,38,0.45), 0 18px 40px rgba(0,0,0,0.25); }
           .hero-glow-button:active { transform: translateY(-1px) scale(0.99); }
-          /* Дополнительные hover-правила для других элементов можно добавить сюда */
         }
 
         /* Mobile specific adjustments */
         @media (max-width: 640px) {
           .max-w-\\[680px\\] { max-width: 92vw; padding-left: 6px; padding-right: 6px; }
 
-          /* make popup fixed and scrollable on small screens */
           .drp-popup {
             width: calc(100vw - 24px);
             left: 12px;
@@ -918,13 +823,36 @@ export default function HomePage() {
 
           .drp-cell { height: 44px; font-size: 14px; }
           .drp-actions { align-items: center; gap: 6px }
-          /* reduce radio buttons padding for mobiles */
           [role="radiogroup"] button { padding-top: 8px; padding-bottom: 8px; font-size: 13px; }
+
+          /* Allow date text blocks to shrink on tiny screens and truncate */
+          .range-picker .text-sm,
+          .range-picker .text-base,
+          .range-picker .text-gray-700 {
+            white-space: normal !important;
+            min-width: 0;
+          }
+          .range-picker .px-1 {
+            max-width: 44vw;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+
+          /* Slightly reduce big paddings and font sizes on very small phones */
+          .hero h1 { line-height: 1.05; }
+          .hero .max-w-5xl { padding-left: 12px; padding-right: 12px; }
         }
 
-        /* avoid accidental horizontal scroll */
-        html, body, #__next {
-          overflow-x: hidden;
+        /* avoid accidental horizontal scroll (extra safety) */
+        body > #__next > div {
+          overflow-x: hidden !important;
+        }
+
+        /* Additional small-screen tweaks */
+        @media (max-width: 380px) {
+          .hero h1 { font-size: 22px !important; }
+          .hero p { font-size: 14px !important; }
+          .hero-glow-button { padding: 10px 16px; border-radius: 12px; font-size: 14px; }
         }
       `}</style>
     </div>
