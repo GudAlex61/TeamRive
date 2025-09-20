@@ -2,7 +2,8 @@
 
 import type React from "react"
 import { useState, useEffect, useRef, useMemo } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
+import BookingScroller from "@/components/BookingScroller" // клиентский компонент — должен быть создан
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -38,7 +39,6 @@ export default function HomePage() {
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const router = useRouter()
-  const searchParams = useSearchParams() // <-- добавлено для отслеживания ?scrollTo=booking
 
   const rangeControlRef = useRef<HTMLDivElement | null>(null)
   const popupRef = useRef<HTMLDivElement | null>(null)
@@ -80,60 +80,14 @@ export default function HomePage() {
     }
   }, [])
 
-  // ============ РЕАКЦИЯ НА ?scrollTo=booking =============
-  // Теперь используем useSearchParams и реагируем на изменения в query (работает как при прямой загрузке с ?scrollTo=booking,
-  // так и при router.push("/?scrollTo=booking") из другой страницы).
-  useEffect(() => {
-    if (typeof window === "undefined") return
-    try {
-      if (searchParams?.get("scrollTo") === "booking") {
-        let fallbackTimer: number | null = null
-        const mainTimer = window.setTimeout(() => {
-          const bookingSection = document.getElementById("booking-form")
-  
-          if (bookingSection) {
-            bookingSection.scrollIntoView({ behavior: "smooth", block: "start" })
-            try {
-              history.replaceState(null, "", window.location.pathname + window.location.hash)
-            } catch {}
-          } else {
-            // если элемента ещё нет — запланируем однократный fallback
-            fallbackTimer = window.setTimeout(() => {
-              const bs = document.getElementById("booking-form")
-              bs?.scrollIntoView({ behavior: "smooth", block: "start" })
-              try {
-                history.replaceState(null, "", window.location.pathname + window.location.hash)
-              } catch {}
-            }, 500)
-          }
-        }, 300)
-  
-        return () => {
-          clearTimeout(mainTimer)
-          if (fallbackTimer) {
-            clearTimeout(fallbackTimer)
-          }
-        }
-      }
-    } catch {}
-  }, [searchParams?.toString()])// эффект сработает при изменении query-параметров
+  useEffect(() => { if (typeof window !== "undefined") window.scrollTo(0, 0) }, [])
+
+  // NOTE: убран useEffect с useSearchParams / URLSearchParams — теперь это делает BookingScroller (клиентский)
+  // Если раньше был код для обработки ?scrollTo=booking — он удалён отсюда.
 
   const toggleFaq = (index: number) => setOpenFaq(openFaq === index ? null : index)
   const navigateToBase = (baseName: string) => router.push(`/${baseName}`)
-
-  // ЗАМЕНА: теперь hero и другие кнопки на главной используют uniform SPA-навигацию
-  // (router.push("/?scrollTo=booking")) чтобы гарантированно сработал эффект выше.
-  const scrollToBooking = () => {
-    try {
-      // если уже на главной и хотим сделать моментальный скролл без изменения URL, можно оставить document.scroll...
-      // но чтобы работало консистентно и из других страниц — делаем router.push с query.
-      router.push("/?scrollTo=booking")
-    } catch {
-      // fallback на прямой скролл (редкий случай)
-      document.getElementById("booking-form")?.scrollIntoView({ behavior: "smooth", block: "start" })
-    }
-  }
-
+  const scrollToBooking = () => router.push("/?scrollTo=booking") // вызывает BookingScroller на главной
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
@@ -227,8 +181,11 @@ export default function HomePage() {
   const onSelectBase = (id:string) => handleInputChange("base", id)
 
   return (
-    // сменил min-h-screen на h-full и добавил явный класс root-wrapper для более точного CSS контроля
+    // оставил root-wrapper и h-full — ничего не менял в соотношении разметки
     <div className="root-wrapper h-full bg-background overflow-x-hidden">
+      {/* ВСТАВИЛИ КЛИЕНТСКИЙ BOOKING SCROLLER */}
+      <BookingScroller />
+
       {/* HERO */}
       <section className="relative h-[100dvh] hero flex items-center justify-center overflow-hidden" style={{ minHeight: "100dvh" }}>
         <div className="absolute inset-0 z-0">
