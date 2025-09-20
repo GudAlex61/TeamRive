@@ -1,9 +1,8 @@
-// app/page.tsx
 "use client"
 
 import type React from "react"
 import { useState, useEffect, useRef, useMemo } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -39,6 +38,7 @@ export default function HomePage() {
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const router = useRouter()
+  const searchParams = useSearchParams() // <-- добавлено для отслеживания ?scrollTo=booking
 
   const rangeControlRef = useRef<HTMLDivElement | null>(null)
   const popupRef = useRef<HTMLDivElement | null>(null)
@@ -80,26 +80,60 @@ export default function HomePage() {
     }
   }, [])
 
+  // ============ РЕАКЦИЯ НА ?scrollTo=booking =============
+  // Теперь используем useSearchParams и реагируем на изменения в query (работает как при прямой загрузке с ?scrollTo=booking,
+  // так и при router.push("/?scrollTo=booking") из другой страницы).
   useEffect(() => {
     if (typeof window === "undefined") return
     try {
-      const params = new URLSearchParams(window.location.search)
-      if (params.get("scrollTo") === "booking") {
-        const timer = window.setTimeout(() => {
+      if (searchParams?.get("scrollTo") === "booking") {
+        // основной таймер (даём небольшую задержку чтобы DOM успел отрисоваться и layout стабилизировался)
+        const mainTimer = window.setTimeout(() => {
           const bookingSection = document.getElementById("booking-form")
-          bookingSection?.scrollIntoView({ behavior: "smooth", block: "start" })
-          try {
-            history.replaceState(null, "", window.location.pathname + window.location.hash)
-          } catch {}
-        }, 600)
-        return () => clearTimeout(timer)
+          if (bookingSection) {
+            bookingSection.scrollIntoView({ behavior: "smooth", block: "start" })
+            try {
+              // убираем параметр из URL после прокрутки
+              history.replaceState(null, "", window.location.pathname + window.location.hash)
+            } catch {}
+          } else {
+            // запасной таймер: если элемент ещё не найден (редко), попробуем через ещё 500ms
+            const fallback = window.setTimeout(() => {
+              const bs = document.getElementById("booking-form")
+              bs?.scrollIntoView({ behavior: "smooth", block: "start" })
+              try { history.replaceState(null, "", window.location.pathname + window.location.hash) } catch {}
+            }, 500)
+            // очистим fallback в cleanup:
+            (mainTimer as any)._fallback = fallback
+          }
+        }, 300) // 300ms — обычно достаточно, можно увеличить при необходимости
+
+        return () => {
+          // если есть fallback — очистим
+          if ((mainTimer as any)?._fallback) {
+            clearTimeout((mainTimer as any)._fallback)
+          }
+          clearTimeout(mainTimer)
+        }
       }
     } catch {}
-  }, [])
+  }, [searchParams?.toString()]) // эффект сработает при изменении query-параметров
 
   const toggleFaq = (index: number) => setOpenFaq(openFaq === index ? null : index)
   const navigateToBase = (baseName: string) => router.push(`/${baseName}`)
-  const scrollToBooking = () => document.getElementById("booking-form")?.scrollIntoView({ behavior: "smooth", block: "start" })
+
+  // ЗАМЕНА: теперь hero и другие кнопки на главной используют uniform SPA-навигацию
+  // (router.push("/?scrollTo=booking")) чтобы гарантированно сработал эффект выше.
+  const scrollToBooking = () => {
+    try {
+      // если уже на главной и хотим сделать моментальный скролл без изменения URL, можно оставить document.scroll...
+      // но чтобы работало консистентно и из других страниц — делаем router.push с query.
+      router.push("/?scrollTo=booking")
+    } catch {
+      // fallback на прямой скролл (редкий случай)
+      document.getElementById("booking-form")?.scrollIntoView({ behavior: "smooth", block: "start" })
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

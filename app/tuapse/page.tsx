@@ -1,11 +1,11 @@
 // app/tuapse/page.tsx
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ChevronLeft, ChevronRight, MapPin, Users, Dumbbell, Waves, Car, Wifi, UtensilsCrossed, Shield, Gamepad2 } from "lucide-react"
+import { ChevronLeft, ChevronRight, MapPin, Users, Dumbbell, Waves, Car, UtensilsCrossed, Shield, Gamepad2 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
@@ -14,7 +14,12 @@ export default function TuapsePage() {
   const [modalOpen, setModalOpen] = useState(false)
   const router = useRouter()
 
-  // IntersectionObserver-based AOS replacement
+  // touch/swipe refs and previous body overflow storage
+  const touchStartX = useRef<number | null>(null)
+  const touchStartY = useRef<number | null>(null)
+  const prevBodyOverflow = useRef<string | null>(null)
+
+  // AOS-like observer to animate elements when they enter viewport
   useEffect(() => {
     if (typeof window === "undefined") return
     const timeouts: number[] = []
@@ -26,27 +31,19 @@ export default function TuapsePage() {
           if (entry.isIntersecting) {
             const rawDelay = el.getAttribute("data-aos-delay") || el.dataset.aosDelay || "0"
             const delay = parseInt(rawDelay.toString(), 10) || 0
-            const doAnimate = () => {
-              el.classList.add("aos-animate")
-            }
+            const doAnimate = () => el.classList.add("aos-animate")
             if (el.hasAttribute("data-aos-onload")) {
               const t = window.setTimeout(doAnimate, delay)
               timeouts.push(t)
             } else {
-              const t = window.setTimeout(() => {
-                doAnimate()
-              }, delay)
+              const t = window.setTimeout(() => doAnimate(), delay)
               timeouts.push(t)
             }
-            observer.unobserve(el) // behave like once:true
+            observer.unobserve(el)
           }
         })
       },
-      {
-        threshold: 0.12,
-        root: null,
-        rootMargin: "0px",
-      }
+      { threshold: 0.12, root: null, rootMargin: "0px" }
     )
 
     const nodes = Array.from(document.querySelectorAll<HTMLElement>("[data-aos]"))
@@ -62,63 +59,84 @@ export default function TuapsePage() {
   }, [])
 
   useEffect(() => {
-    window.scrollTo(0, 0)
+    if (typeof window !== "undefined") window.scrollTo(0, 0)
   }, [])
 
+  // Replace with your real images when ready
   const images = [
     "/placeholder.svg?height=600&width=800",
     "/placeholder.svg?height=600&width=800",
     "/placeholder.svg?height=600&width=800",
   ]
 
-
   const nextImage = useCallback(() => setCurrentImageIndex((p) => (p + 1) % images.length), [images.length])
   const prevImage = useCallback(() => setCurrentImageIndex((p) => (p - 1 + images.length) % images.length), [images.length])
 
   const openModalAt = (idx: number) => {
     setCurrentImageIndex(idx)
+    // lock body scroll (remember previous value)
+    if (typeof document !== "undefined") {
+      prevBodyOverflow.current = document.body.style.overflow
+      document.body.style.overflow = "hidden"
+    }
     setModalOpen(true)
-    document.body.style.overflow = "hidden"
   }
   const closeModal = () => {
     setModalOpen(false)
-    document.body.style.overflow = ""
+    if (typeof document !== "undefined") {
+      document.body.style.overflow = prevBodyOverflow.current ?? ""
+      prevBodyOverflow.current = null
+    }
   }
 
   useEffect(() => {
     if (!modalOpen) return
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        closeModal()
-      } else if (e.key === "ArrowRight") {
-        nextImage()
-      } else if (e.key === "ArrowLeft") {
-        prevImage()
-      }
+      if (e.key === "Escape") closeModal()
+      else if (e.key === "ArrowRight") nextImage()
+      else if (e.key === "ArrowLeft") prevImage()
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
   }, [modalOpen, nextImage, prevImage])
 
+  // Touch handlers for swipe support
+  const onTouchStart = (e: React.TouchEvent) => {
+    if (!e.touches || e.touches.length === 0) return
+    touchStartX.current = e.touches[0].clientX
+    touchStartY.current = e.touches[0].clientY
+  }
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return
+    const touch = e.changedTouches && e.changedTouches[0]
+    if (!touch) return
+    const dx = touch.clientX - touchStartX.current
+    const dy = touch.clientY - touchStartY.current
+    const absDx = Math.abs(dx)
+    const absDy = Math.abs(dy)
+    const THRESHOLD = 40
+    if (absDx > THRESHOLD && absDx > absDy) {
+      if (dx < 0) nextImage()
+      else prevImage()
+    }
+    touchStartX.current = null
+    touchStartY.current = null
+  }
+
+  // Click on left/right side of image to navigate
+  const onModalAreaClick = (e: React.MouseEvent) => {
+    const x = e.clientX
+    const vw = typeof window !== "undefined" ? window.innerWidth : 0
+    if (x < vw / 2) prevImage()
+    else nextImage()
+  }
+
   const scrollToBooking = () => {
     router.push("/?scrollTo=booking")
   }
 
-  // Добавляем обработку для мобильных устройств: убираем hover эффекты на тачах
-  useEffect(() => {
-    const style = document.createElement("style")
-    style.innerHTML = `
-      @media (hover: none) {
-        *:hover {
-          all: unset !important;
-        }
-      }
-    `
-    document.head.appendChild(style)
-    return () => {
-      document.head.removeChild(style)
-    }
-  }, [])
+  // Avoid blanket hover-reset on touch devices (can break interactivity). If needed, add targeted rules.
+  // The markup below mirrors the pattern used on Anaпа/Волгоград pages.
 
   return (
     <div className="min-h-screen bg-background">
@@ -168,18 +186,20 @@ export default function TuapsePage() {
                 alt={`Туапсе - фото ${currentImageIndex + 1}`}
                 className="max-w-full max-h-full object-contain cursor-zoom-in"
                 onClick={() => openModalAt(currentImageIndex)}
+                draggable={false}
               />
 
+              {/* Desktop arrows */}
               <button
                 onClick={prevImage}
-                className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full backdrop-blur-sm"
+                className="hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full transition-all duration-300 hover:scale-110 backdrop-blur-sm"
                 aria-label="Previous"
               >
                 <ChevronLeft className="w-6 h-6" />
               </button>
               <button
                 onClick={nextImage}
-                className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full backdrop-blur-sm"
+                className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full transition-all duration-300 hover:scale-110 backdrop-blur-sm"
                 aria-label="Next"
               >
                 <ChevronRight className="w-6 h-6" />
@@ -195,9 +215,9 @@ export default function TuapsePage() {
                 <button
                   key={idx}
                   onClick={() => setCurrentImageIndex(idx)}
-                  className={`flex-shrink-0 w-20 h-16 rounded-md overflow-hidden border-2 ${idx === currentImageIndex ? "border-primary shadow-lg" : "border-transparent"}`}
+                  className={`flex-shrink-0 w-20 h-16 rounded-md overflow-hidden border-2 transition-all duration-300 ${idx === currentImageIndex ? "border-primary shadow-lg" : "border-transparent"}`}
                 >
-                  <img src={img} alt={`thumb ${idx + 1}`} className="w-full h-full object-cover" />
+                  <img src={img} alt={`thumb ${idx + 1}`} className="w-full h-full object-cover" draggable={false} />
                 </button>
               ))}
             </div>
@@ -216,7 +236,7 @@ export default function TuapsePage() {
                   В пакет (от 2100₽) входит проживание в отеле «Меркурий» или «Автотурист», трёхразовое питание и курортный сбор. Отели расположены примерно в 50 метрах от моря, что делает базу идеальной для восстановления между тренировками.
                 </p>
                 <p className="text-muted-foreground text-lg leading-relaxed">
-                  На территории отелей — бассейны, аквапарк и спортивные площадки. Турнирные матчи и тренировки проходят на стадионе «Водник» и в спортивном комплексе «Дельфин», а также в крытых манежах в зимнее время.
+                  На территории отелей — бассейны, аквапарк и спортивные площадки. Турнирные матчи и тренировки проходят на стадионе «Водник», в спортивном комплексе «Дельфин» и крытых манежах в зимнее время.
                 </p>
                 <p className="text-muted-foreground text-lg leading-relaxed">
                   Организуем трансфер, питание, медицинское сопровождение и полный спектр услуг для комфортного проведения тренировочных сборов.
@@ -225,7 +245,7 @@ export default function TuapsePage() {
             </div>
 
             <div data-aos="fade-left" data-aos-delay="400">
-              <Card className="shadow-xl border-0 bg-gradient-to-br from-white via-white to-gray-50/50">
+              <Card className="shadow-xl transition-all duration-500 border-0 bg-gradient-to-br from-white via-white to-gray-50/50">
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10 rounded-lg pointer-events-none"></div>
                 <CardContent className="relative p-6">
                   <h3 className="font-semibold mb-4 text-xl">Быстрая информация</h3>
@@ -254,8 +274,8 @@ export default function TuapsePage() {
 
                   <div className="mt-6 text-center">
                     <div className="text-2xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">от 2100₽</div>
-                    <Button 
-                      className="w-full mt-2 py-4 text-lg shadow-lg bg-gradient-to-r from-primary to-primary/90" 
+                    <Button
+                      className="w-full mt-2 py-4 text-lg shadow-lg bg-gradient-to-r from-primary to-primary/90"
                       onClick={scrollToBooking}
                     >
                       Забронировать базу
@@ -280,62 +300,35 @@ export default function TuapsePage() {
               {
                 icon: Dumbbell,
                 title: "Спортивные объекты",
-                features: [
-                  "Стадион «Водник»",
-                  "Спортивный комплекс «Дельфин»",
-                  "Крытые манежи для зимних тренировок"
-                ]
+                features: ["Стадион «Водник»", "Спортивный комплекс «Дельфин»", "Крытые манежи для зимних тренировок"],
               },
               {
                 icon: Waves,
                 title: "Отдых и восстановление",
-                features: [
-                  "Бассейны на территории отелей",
-                  "Аквапарк",
-                  "Доступ к морю (~50 м)"
-                ]
+                features: ["Бассейны на территории отелей", "Аквапарк", "Доступ к морю (~50 м)"],
               },
               {
                 icon: UtensilsCrossed,
                 title: "Питание и проживание",
-                features: [
-                  "Отели «Меркурий», «Автотурист»",
-                  "3-разовое питание",
-                  "Меню для спортсменов"
-                ]
+                features: ["Отели «Меркурий», «Автотурист»", "3-разовое питание", "Меню для спортсменов"],
               },
               {
                 icon: Gamepad2,
                 title: "Развлечения",
-                features: [
-                  "Аквапарк на территории",
-                  "Спортивные площадки",
-                  "Развлекательные программы"
-                ]
+                features: ["Аквапарк на территории", "Спортивные площадки", "Развлекательные программы"],
               },
               {
                 icon: Shield,
                 title: "Безопасность",
-                features: [
-                  "Охраняемая территория",
-                  "Медицинское сопровождение"
-                ]
+                features: ["Охраняемая территория", "Медицинское сопровождение"],
               },
               {
                 icon: Car,
                 title: "Транспорт",
-                features: [
-                  "Трансфер от/до аэропорта и вокзала",
-                  "Организация поездок на тренировки"
-                ]
-              }
+                features: ["Трансфер от/до аэропорта и вокзала", "Организация поездок на тренировки"],
+              },
             ].map((facility, index) => (
-              <Card 
-                key={index}
-                className="border-0 shadow-lg bg-white/80 backdrop-blur-sm"
-                data-aos="zoom-in"
-                data-aos-delay={100 + index * 100}
-              >
+              <Card key={index} className="border-0 shadow-lg bg-white/80 backdrop-blur-sm" data-aos="zoom-in" data-aos-delay={100 + index * 100}>
                 <CardContent className="p-6">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
@@ -368,19 +361,10 @@ export default function TuapsePage() {
             Оставьте заявку — менеджер рассчитает стоимость пакета и проконсультирует по всем услугам.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center" data-aos="zoom-in" data-aos-delay="400">
-            <Button 
-              size="lg" 
-              onClick={scrollToBooking} 
-              className="text-lg py-6 px-8 shadow-lg bg-gradient-to-r from-primary to-primary/90"
-            >
+            <Button size="lg" onClick={scrollToBooking} className="text-lg py-6 px-8 shadow-lg bg-gradient-to-r from-primary to-primary/90">
               Оставить заявку
             </Button>
-            <Button 
-              size="lg" 
-              variant="outline" 
-              asChild 
-              className="text-lg py-6 px-8 border-2"
-            >
+            <Button size="lg" variant="outline" asChild className="text-lg py-6 px-8 border-2">
               <Link href="tel:+74951234567">Позвонить сейчас</Link>
             </Button>
           </div>
@@ -395,87 +379,115 @@ export default function TuapsePage() {
         </div>
       </footer>
 
-      {/* Fullscreen modal for gallery */}
+      {/* Fullscreen modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-          <button className="absolute top-6 right-6 z-60 bg-black/30 text-white rounded-full p-2" onClick={closeModal} aria-label="Close">
+        <div
+          className="fixed inset-0 z-50 bg-black/92 flex items-center justify-center"
+          onTouchStart={onTouchStart}
+          onTouchEnd={onTouchEnd}
+          style={{ touchAction: "none" }}
+        >
+          {/* close button */}
+          <button
+            onClick={closeModal}
+            aria-label="Close"
+            style={{
+              position: "absolute",
+              top: 12,
+              right: 12,
+              zIndex: 1003,
+              background: "rgba(0,0,0,0.45)",
+              color: "white",
+              border: "none",
+              padding: 10,
+              borderRadius: 999,
+            }}
+          >
             ✕
           </button>
 
-          <button className="absolute left-6 top-1/2 -translate-y-1/2 z-60 p-2 bg-black/30 rounded-full text-white" onClick={prevImage} aria-label="Prev">
+          {/* desktop arrows */}
+          <button
+            onClick={prevImage}
+            aria-label="Prev"
+            style={{
+              display: typeof window !== "undefined" && window.innerWidth >= 768 ? "flex" : "none",
+              position: "absolute",
+              left: 24,
+              top: "50%",
+              transform: "translateY(-50%)",
+              zIndex: 1002,
+              background: "rgba(0,0,0,0.28)",
+              color: "white",
+              border: "none",
+              padding: 12,
+              borderRadius: 8,
+            }}
+          >
             ‹
           </button>
-          <div className="max-w-full max-h-full flex items-center justify-center">
-            <img src={images[currentImageIndex]} alt={`Large ${currentImageIndex + 1}`} className="max-w-full max-h-[90vh] object-contain" />
-          </div>
-          <button className="absolute right-6 top-1/2 -translate-y-1/2 z-60 p-2 bg-black/30 rounded-full text-white" onClick={nextImage} aria-label="Next">
+
+          <button
+            onClick={nextImage}
+            aria-label="Next"
+            style={{
+              display: typeof window !== "undefined" && window.innerWidth >= 768 ? "flex" : "none",
+              position: "absolute",
+              right: 24,
+              top: "50%",
+              transform: "translateY(-50%)",
+              zIndex: 1002,
+              background: "rgba(0,0,0,0.28)",
+              color: "white",
+              border: "none",
+              padding: 12,
+              borderRadius: 8,
+            }}
+          >
             ›
           </button>
 
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/80 text-sm">Esc — выйти, свайп/клики по стрелкам — листать</div>
+          {/* clickable halves (below close button) */}
+          <div style={{ position: "absolute", inset: 0, zIndex: 1001, display: "flex" }} aria-hidden>
+            <div style={{ flex: 1, height: "100%" }} onClick={(e) => { e.stopPropagation(); prevImage() }} />
+            <div style={{ flex: 1, height: "100%" }} onClick={(e) => { e.stopPropagation(); nextImage() }} />
+          </div>
+
+          <div
+            onClick={(e) => {
+              e.stopPropagation()
+              if ((e as React.MouseEvent).clientX !== undefined) onModalAreaClick(e as React.MouseEvent)
+            }}
+            style={{ zIndex: 1002, maxWidth: "calc(100vw - 32px)", maxHeight: "calc(100dvh - 32px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 8 }}
+          >
+            <img
+              src={images[currentImageIndex]}
+              alt={`Large ${currentImageIndex + 1}`}
+              draggable={false}
+              style={{ width: "auto", height: "auto", maxWidth: "100%", maxHeight: "100%", objectFit: "contain", borderRadius: 8, touchAction: "manipulation", userSelect: "none" }}
+            />
+          </div>
+
+          <div style={{ position: "absolute", bottom: 12, left: "50%", transform: "translateX(-50%)", color: "rgba(255,255,255,0.85)", fontSize: 13, zIndex: 1003 }}>
+            Esc — выйти • Нажмите по левой/правой стороне экрана или свайпните для листания
+          </div>
         </div>
       )}
 
-      {/* Custom CSS for animations */}
+      {/* Small AOS CSS */}
       <style jsx global>{`
-        [data-aos] {
-          opacity: 0;
-          transform: translate3d(0, 0, 0);
-          transition: opacity 0.6s ease-out, transform 0.6s ease-out;
-        }
-
-        [data-aos="fade"] {
-          transform: translate3d(0, 0, 0);
-        }
-
-        [data-aos="fade"].aos-animate {
-          opacity: 1;
-        }
-
-        [data-aos="slide-up"] {
-          transform: translate3d(0, 50px, 0);
-        }
-
-        [data-aos="slide-up"].aos-animate {
-          opacity: 1;
-          transform: translate3d(0, 0, 0);
-        }
-
-        [data-aos="fade-right"] {
-          transform: translate3d(-50px, 0, 0);
-        }
-
-        [data-aos="fade-right"].aos-animate {
-          opacity: 1;
-          transform: translate3d(0, 0, 0);
-        }
-
-        [data-aos="fade-left"] {
-          transform: translate3d(50px, 0, 0);
-        }
-
-        [data-aos="fade-left"].aos-animate {
-          opacity: 1;
-          transform: translate3d(0, 0, 0);
-        }
-
-        [data-aos="zoom-in"] {
-          transform: scale(0.8);
-        }
-
-        [data-aos="zoom-in"].aos-animate {
-          opacity: 1;
-          transform: scale(1);
-        }
-
-        [data-aos="fade-up"] {
-          transform: translate3d(0, 30px, 0);
-        }
-
-        [data-aos="fade-up"].aos-animate {
-          opacity: 1;
-          transform: translate3d(0, 0, 0);
-        }
+        [data-aos] { opacity: 0; transform: translate3d(0, 0, 0); transition: opacity 0.6s ease-out, transform 0.6s ease-out; }
+        [data-aos="fade"].aos-animate { opacity: 1; transform: none; }
+        [data-aos="slide-up"] { transform: translate3d(0, 50px, 0); }
+        [data-aos="slide-up"].aos-animate { opacity: 1; transform: translate3d(0, 0, 0); }
+        [data-aos="fade-right"] { transform: translate3d(-50px, 0, 0); }
+        [data-aos="fade-right"].aos-animate { opacity: 1; transform: translate3d(0, 0, 0); }
+        [data-aos="fade-left"] { transform: translate3d(50px, 0, 0); }
+        [data-aos="fade-left"].aos-animate { opacity: 1; transform: translate3d(0, 0, 0); }
+        [data-aos="zoom-in"] { transform: scale(0.9); }
+        [data-aos="zoom-in"].aos-animate { opacity: 1; transform: scale(1); }
+        [data-aos="fade-up"] { transform: translate3d(0, 30px, 0); }
+        [data-aos="fade-up"].aos-animate { opacity: 1; transform: translate3d(0, 0, 0); }
       `}</style>
     </div>
   )
