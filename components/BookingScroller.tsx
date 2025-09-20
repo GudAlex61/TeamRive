@@ -1,10 +1,14 @@
-// app/components/BookingScroller.tsx
 "use client"
 
 import { useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 
-export default function BookingScroller() {
+/**
+ * Клиентский компонент, отвечающий за прокрутку к #booking при ?scrollTo=booking
+ * - Обязательно "use client" вверху.
+ * - Использует useSearchParams только на клиенте.
+ */
+export default function BookingScroller(): null {
   const searchParams = useSearchParams()
 
   useEffect(() => {
@@ -13,14 +17,14 @@ export default function BookingScroller() {
       if (searchParams?.get("scrollTo") === "booking") {
         let fallbackTimer: number | null = null
 
+        // основной таймер — даём странице подгрузиться
         const mainTimer = window.setTimeout(() => {
           const bookingSection = document.getElementById("booking-form")
-
           if (bookingSection) {
             bookingSection.scrollIntoView({ behavior: "smooth", block: "start" })
             try { history.replaceState(null, "", window.location.pathname + window.location.hash) } catch {}
           } else {
-            // если элемент ещё не в DOM — пробуем ещё раз через 500ms
+            // если элемента нет — делаем однократный fallback
             fallbackTimer = window.setTimeout(() => {
               const bs = document.getElementById("booking-form")
               bs?.scrollIntoView({ behavior: "smooth", block: "start" })
@@ -35,7 +39,7 @@ export default function BookingScroller() {
         }
       }
     } catch (e) {
-      // silently ignore
+      // безопасно молча игнорируем
     }
   }, [searchParams?.toString()])
 
