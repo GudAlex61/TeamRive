@@ -87,37 +87,36 @@ export default function HomePage() {
     if (typeof window === "undefined") return
     try {
       if (searchParams?.get("scrollTo") === "booking") {
-        // основной таймер (даём небольшую задержку чтобы DOM успел отрисоваться и layout стабилизировался)
+        let fallbackTimer: number | null = null
         const mainTimer = window.setTimeout(() => {
           const bookingSection = document.getElementById("booking-form")
+  
           if (bookingSection) {
             bookingSection.scrollIntoView({ behavior: "smooth", block: "start" })
             try {
-              // убираем параметр из URL после прокрутки
               history.replaceState(null, "", window.location.pathname + window.location.hash)
             } catch {}
           } else {
-            // запасной таймер: если элемент ещё не найден (редко), попробуем через ещё 500ms
-            const fallback = window.setTimeout(() => {
+            // если элемента ещё нет — запланируем однократный fallback
+            fallbackTimer = window.setTimeout(() => {
               const bs = document.getElementById("booking-form")
               bs?.scrollIntoView({ behavior: "smooth", block: "start" })
-              try { history.replaceState(null, "", window.location.pathname + window.location.hash) } catch {}
+              try {
+                history.replaceState(null, "", window.location.pathname + window.location.hash)
+              } catch {}
             }, 500)
-            // очистим fallback в cleanup:
-            (mainTimer as any)._fallback = fallback
           }
-        }, 300) // 300ms — обычно достаточно, можно увеличить при необходимости
-
+        }, 300)
+  
         return () => {
-          // если есть fallback — очистим
-          if ((mainTimer as any)?._fallback) {
-            clearTimeout((mainTimer as any)._fallback)
-          }
           clearTimeout(mainTimer)
+          if (fallbackTimer) {
+            clearTimeout(fallbackTimer)
+          }
         }
       }
     } catch {}
-  }, [searchParams?.toString()]) // эффект сработает при изменении query-параметров
+  }, [searchParams?.toString()])// эффект сработает при изменении query-параметров
 
   const toggleFaq = (index: number) => setOpenFaq(openFaq === index ? null : index)
   const navigateToBase = (baseName: string) => router.push(`/${baseName}`)
