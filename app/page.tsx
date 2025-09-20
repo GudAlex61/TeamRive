@@ -1,8 +1,10 @@
+// app/page.tsx
+"use client"
 
 import type React from "react"
 import { useState, useEffect, useRef, useMemo } from "react"
+import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
-import BookingScroller from "@/components/BookingScroller" // клиентский компонент — должен быть создан
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -20,6 +22,9 @@ import {
   MapIcon,
   CheckCircle,
 } from "lucide-react"
+
+// DYNAMIC IMPORT: загружаем клиентский компонент только на клиенте -> исключаем useSearchParams из SSR
+const BookingScroller = dynamic(() => import('@/components/BookingScroller'), { ssr: false })
 
 export default function HomePage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null)
@@ -81,12 +86,11 @@ export default function HomePage() {
 
   useEffect(() => { if (typeof window !== "undefined") window.scrollTo(0, 0) }, [])
 
-  // NOTE: убран useEffect с useSearchParams / URLSearchParams — теперь это делает BookingScroller (клиентский)
-  // Если раньше был код для обработки ?scrollTo=booking — он удалён отсюда.
-
+  // NOTE: Вся логика, которая использовала useSearchParams, вынесена в client-компонент BookingScroller.
+  // С этой страницы мы просто вызываем роут с параметром, который поймает BookingScroller.
   const toggleFaq = (index: number) => setOpenFaq(openFaq === index ? null : index)
   const navigateToBase = (baseName: string) => router.push(`/${baseName}`)
-  const scrollToBooking = () => router.push("/?scrollTo=booking") // вызывает BookingScroller на главной
+  const scrollToBooking = () => router.push("/?scrollTo=booking")
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
@@ -180,9 +184,8 @@ export default function HomePage() {
   const onSelectBase = (id:string) => handleInputChange("base", id)
 
   return (
-    // оставил root-wrapper и h-full — ничего не менял в соотношении разметки
     <div className="root-wrapper h-full bg-background overflow-x-hidden">
-      {/* ВСТАВИЛИ КЛИЕНТСКИЙ BOOKING SCROLLER */}
+      {/* клиентский компонент который проверяет ?scrollTo=booking и скроллит; загружается только на клиенте */}
       <BookingScroller />
 
       {/* HERO */}
@@ -649,143 +652,36 @@ export default function HomePage() {
         </div>
       </footer>
 
-      {/* Calendar styles (single month, no hover transform on dates) + mobile / button behavior */}
+      {/* Important global styles (preserved) */}
       <style jsx global>{`
-        /*
-         * Основное решение для удаления лишнего скролла:
-         * 1) Принудительно оставляем вертикальную прокрутку только на body/html
-         * 2) Делаем контейнеры внутри видимыми по вертикали (overflow-y: visible !important)
-         * 3) Исключаем из этого правила popup календаря (.drp-popup), textarea и явные элементы, которым нужен скролл
-         *
-         * Это универсальный, но осторожный подход — он устраняет внутренние контейнеры, создающие дополнительные полосы прокрутки.
-         */
-
         html, body {
           height: 100%;
           margin: 0;
           padding: 0;
           overflow-x: hidden;
-          /* главная вертикальная полоса прокрутки — на body */
           overflow-y: auto;
         }
+        #__next, #__next > div { height: 100%; min-height: 100%; overflow: visible !important; }
+        .root-wrapper { min-height: 100%; height: 100%; overflow: visible !important; }
 
-        /* Next.js root */
-        #__next, #__next > div {
-          height: 100%;
-          min-height: 100%;
-          overflow: visible !important;
-        }
-
-        /* Корневой wrapper — пусть будет высотой 100% страницы (чтобы не создавал внутренний скролл) */
-        .root-wrapper {
-          min-height: 100%;
-          height: 100%;
-          overflow: visible !important;
-        }
-
-        /*
-         * СКРЫВАЕМ любые внутренние вертикальные скроллы: делаем overflow-y visible
-         * (включая элементы, у которых по ошибке выставлен overflow: auto/scroll).
-         * Исключаем селекторы, которым нужен собственный скролл:
-         * - .drp-popup (попап календаря)
-         * - textarea (для длинного текста)
-         * - .allow-scroll (специальный класс — если нужно дать элементу внутренний скролл, добавьте этот класс)
-         */
-        body *:not(.drp-popup):not(.drp-popup *):not(textarea):not(.allow-scroll):not(.allow-scroll *) {
-          overflow-y: visible !important;
-          /* Убираем возможные стили прокрутки, которые мог добавлять компонент */
-          scrollbar-width: none !important;
-        }
-
-        /* для drp-popup и textarea оставляем стандартный поведение (скролл внутри) */
-        .drp-popup, textarea, .allow-scroll {
-          overflow-y: auto !important;
-          -webkit-overflow-scrolling: touch;
-        }
-
-        /* calendar popup */
-        .drp-popup {
-          position: absolute;
-          z-index: 70;
-          background: #fff;
-          border: 1px solid rgba(15,23,42,0.06);
-          border-radius: 12px;
-          box-shadow: 0 12px 40px rgba(2,6,23,0.08);
-          padding: 12px;
-          width: 420px;
-          max-width: calc(100vw - 32px);
-          touch-action: manipulation;
-          -webkit-overflow-scrolling: touch;
-        }
-
+        /* Calendar popup and small-screen tweaks (kept from original) */
+        .drp-popup { position: absolute; z-index: 70; background: #fff; border: 1px solid rgba(15,23,42,0.06); border-radius: 12px; box-shadow: 0 12px 40px rgba(2,6,23,0.08); padding: 12px; width: 420px; max-width: calc(100vw - 32px); -webkit-overflow-scrolling: touch; }
         .drp-top { display:flex; align-items:center; justify-content:space-between; gap:8px }
         .drp-nav-btn { background: transparent; border: 0; padding: 6px; border-radius: 8px; cursor: pointer; color: #374151 }
         .drp-title { font-weight: 600; color: #111827; font-size: 14px }
-
         .drp-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; font-size: 12px; color: #6b7280; margin-bottom: 6px; }
         .drp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
-
-        .drp-cell {
-          height: 40px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 10px;
-          font-size: 14px;
-          color: #374151;
-          cursor: pointer;
-          user-select: none;
-          transition: background-color 120ms ease, color 120ms ease;
-          -webkit-tap-highlight-color: transparent;
-          touch-action: manipulation;
-        }
-
+        .drp-cell { height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 10px; font-size: 14px; color: #374151; cursor: pointer; user-select: none; transition: background-color 120ms ease, color 120ms ease; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
         .drp-cell.empty { background: transparent; cursor: default; opacity: 0; }
         .drp-cell--muted { color: #9ca3af; opacity: 0.9; }
-
-        .drp-cell--today {
-          box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04);
-        }
-
-        .drp-cell--selected {
-          background: #dc2626;
-          color: white;
-          font-weight: 700;
-          box-shadow: 0 6px 18px rgba(220,38,38,0.14);
-        }
-
-        .drp-cell--inrange {
-          background: #fff2f2;
-          color: #b91c1c;
-        }
-
+        .drp-cell--today { box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04); }
+        .drp-cell--selected { background: #dc2626; color: white; font-weight: 700; box-shadow: 0 6px 18px rgba(220,38,38,0.14); }
+        .drp-cell--inrange { background: #fff2f2; color: #b91c1c; }
         .drp-actions { display:flex; gap:8px; justify-content:space-between; margin-top:10px; align-items:center }
         .drp-clear { background: transparent; border: 0; color: #6b7280; font-size:13px; cursor:pointer; padding:8px }
-        .drp-apply {
-          background: linear-gradient(135deg, #dc2626 0%, #b91c1c 50%, #991b1b 100%);
-          color: white; padding: 8px 12px; border-radius: 8px; border: none; cursor: pointer;
-        }
+        .drp-apply { background: linear-gradient(135deg, #dc2626 0%, #b91c1c 50%, #991b1b 100%); color: white; padding: 8px 12px; border-radius: 8px; border: none; cursor: pointer; }
 
-        .hero-glow-button {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          gap: 10px;
-          padding: 12px 28px;
-          border-radius: 16px;
-          font-weight: 700;
-          background: linear-gradient(135deg,#dc2626 0%, #b91c1c 50%, #991b1b 100%);
-          border: 2px solid #dc2626;
-          color: white;
-          box-shadow:
-            0 0 18px rgba(220,38,38,0.32),
-            0 10px 30px rgba(0,0,0,0.2);
-          transition: transform 260ms ease, box-shadow 260ms ease;
-          max-width: 420px;
-          width: auto;
-          touch-action: manipulation;
-          -webkit-tap-highlight-color: transparent;
-        }
+        .hero-glow-button { display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 12px 28px; border-radius: 16px; font-weight: 700; background: linear-gradient(135deg,#dc2626 0%, #b91c1c 50%, #991b1b 100%); border: 2px solid #dc2626; color: white; box-shadow: 0 0 18px rgba(220,38,38,0.32), 0 10px 30px rgba(0,0,0,0.2); transition: transform 260ms ease, box-shadow 260ms ease; max-width: 420px; width: auto; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 
         @media (hover: hover) and (pointer: fine) {
           .drp-cell:hover { background: #f8fafc; }
@@ -793,51 +689,20 @@ export default function HomePage() {
           .hero-glow-button:active { transform: translateY(-1px) scale(0.99); }
         }
 
-        /* Mobile specific adjustments */
         @media (max-width: 640px) {
           .max-w-\\[680px\\] { max-width: 92vw; padding-left: 6px; padding-right: 6px; }
-
-          .drp-popup {
-            width: calc(100vw - 24px);
-            left: 12px;
-            right: 12px;
-            bottom: 6vh;
-            position: fixed;
-            border-radius: 12px;
-            max-height: calc(70vh);
-            overflow: auto;
-            -webkit-overflow-scrolling: touch;
-            z-index: 9999;
-          }
-
+          .drp-popup { width: calc(100vw - 24px); left: 12px; right: 12px; bottom: 6vh; position: fixed; border-radius: 12px; max-height: calc(70vh); overflow: auto; -webkit-overflow-scrolling: touch; z-index: 9999; }
           .drp-cell { height: 44px; font-size: 14px; }
           .drp-actions { align-items: center; gap: 6px }
           [role="radiogroup"] button { padding-top: 8px; padding-bottom: 8px; font-size: 13px; }
-
-          /* Allow date text blocks to shrink on tiny screens and truncate */
-          .range-picker .text-sm,
-          .range-picker .text-base,
-          .range-picker .text-gray-700 {
-            white-space: normal !important;
-            min-width: 0;
-          }
-          .range-picker .px-1 {
-            max-width: 44vw;
-            overflow: hidden;
-            text-overflow: ellipsis;
-          }
-
-          /* Slightly reduce big paddings and font sizes on very small phones */
+          .range-picker .text-sm, .range-picker .text-base, .range-picker .text-gray-700 { white-space: normal !important; min-width: 0; }
+          .range-picker .px-1 { max-width: 44vw; overflow: hidden; text-overflow: ellipsis; }
           .hero h1 { line-height: 1.05; }
           .hero .max-w-5xl { padding-left: 12px; padding-right: 12px; }
         }
 
-        /* avoid accidental horizontal scroll (extra safety) */
-        body > #__next > div {
-          overflow-x: hidden !important;
-        }
+        body > #__next > div { overflow-x: hidden !important; }
 
-        /* Additional small-screen tweaks */
         @media (max-width: 380px) {
           .hero h1 { font-size: 22px !important; }
           .hero p { font-size: 14px !important; }
