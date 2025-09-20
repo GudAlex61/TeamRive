@@ -14,11 +14,12 @@ export default function AnapaPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const router = useRouter()
 
-  // touch navigation refs
   const touchStartX = useRef<number | null>(null)
   const touchStartY = useRef<number | null>(null)
+  const prevBodyOverflow = useRef<string | null>(null)
 
   useEffect(() => {
+    // начальные AOS-like анимации (без изменений)
     if (typeof window === "undefined") return
     const timeouts: number[] = []
     const observer = new IntersectionObserver(
@@ -29,34 +30,18 @@ export default function AnapaPage() {
           if (entry.isIntersecting) {
             const rawDelay = el.getAttribute("data-aos-delay") || el.dataset.aosDelay || "0"
             const delay = parseInt(rawDelay.toString(), 10) || 0
-            const doAnimate = () => {
-              el.classList.add("aos-animate")
-            }
-            if (el.hasAttribute("data-aos-onload")) {
-              const t = window.setTimeout(doAnimate, delay)
-              timeouts.push(t)
-            } else {
-              const t = window.setTimeout(() => {
-                doAnimate()
-              }, delay)
-              timeouts.push(t)
-            }
-            observer.unobserve(el) // behave like once:true
+            const doAnimate = () => el.classList.add("aos-animate")
+            const t = window.setTimeout(doAnimate, delay)
+            timeouts.push(t)
+            observer.unobserve(el)
           }
         })
       },
-      {
-        threshold: 0.12,
-        root: null,
-        rootMargin: "0px",
-      }
+      { threshold: 0.12 }
     )
 
     const nodes = Array.from(document.querySelectorAll<HTMLElement>("[data-aos]"))
-    nodes.forEach((n) => {
-      if (n.classList.contains("aos-animate")) return
-      observer.observe(n)
-    })
+    nodes.forEach((n) => { if (!n.classList.contains("aos-animate")) observer.observe(n) })
 
     return () => {
       timeouts.forEach((t) => clearTimeout(t))
@@ -64,9 +49,7 @@ export default function AnapaPage() {
     }
   }, [])
 
-  useEffect(() => {
-    window.scrollTo(0, 0)
-  }, [])
+  useEffect(() => { if (typeof window !== "undefined") window.scrollTo(0, 0) }, [])
 
   const images = [
     "/anapa/photo_2025-09-15_21-02-25.jpg?height=600&width=800",
@@ -85,51 +68,34 @@ export default function AnapaPage() {
 
   const openModalAt = (idx: number) => {
     setCurrentImageIndex(idx)
+    // блокируем прокрутку корректно: сохраняем предыдущее значение и ставим hidden
+    if (typeof document !== "undefined") {
+      prevBodyOverflow.current = document.body.style.overflow
+      document.body.style.overflow = "hidden"
+      // на iOS полезно ещё фиксировать высоту, но это может вызвать сдвиги — пока ограничимся overflow
+    }
     setModalOpen(true)
-    // блокируем прокрутку страницы, чтобы не было сдвигов
-    document.body.style.overflow = "hidden"
   }
   const closeModal = () => {
     setModalOpen(false)
-    document.body.style.overflow = ""
+    if (typeof document !== "undefined") {
+      document.body.style.overflow = prevBodyOverflow.current ?? ""
+      prevBodyOverflow.current = null
+    }
   }
 
   useEffect(() => {
     if (!modalOpen) return
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        closeModal()
-      } else if (e.key === "ArrowRight") {
-        nextImage()
-      } else if (e.key === "ArrowLeft") {
-        prevImage()
-      }
+      if (e.key === "Escape") closeModal()
+      else if (e.key === "ArrowRight") nextImage()
+      else if (e.key === "ArrowLeft") prevImage()
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
   }, [modalOpen, nextImage, prevImage])
 
-  const scrollToBooking = () => {
-    router.push("/?scrollTo=booking")
-  }
-
-  // Добавляем обработку для мобильных устройств: убираем hover эффекты на тачах
-  useEffect(() => {
-    const style = document.createElement("style")
-    style.innerHTML = `
-      @media (hover: none) {
-        *:hover {
-          all: unset !important;
-        }
-      }
-    `
-    document.head.appendChild(style)
-    return () => {
-      document.head.removeChild(style)
-    }
-  }, [])
-
-  // Touch handlers for modal (swipe)
+  // Touch handlers for swipe
   const onTouchStart = (e: React.TouchEvent) => {
     if (!e.touches || e.touches.length === 0) return
     touchStartX.current = e.touches[0].clientX
@@ -143,31 +109,31 @@ export default function AnapaPage() {
     const dy = touch.clientY - touchStartY.current
     const absDx = Math.abs(dx)
     const absDy = Math.abs(dy)
-    const THRESHOLD = 40 // px
-    // horizontal swipe
+    const THRESHOLD = 40
     if (absDx > THRESHOLD && absDx > absDy) {
-      if (dx < 0) {
-        nextImage()
-      } else {
-        prevImage()
-      }
+      if (dx < 0) nextImage()
+      else prevImage()
     }
     touchStartX.current = null
     touchStartY.current = null
   }
 
-  // Click halves navigation (left/right area)
+  // click half-area (desktop mouse clicks also handled)
   const onModalAreaClick = (e: React.MouseEvent) => {
-    // determine click x relative to viewport width
+    // если клик по кнопке — он будет перехвачен раньше, поэтому здесь безопасно читать координату
     const x = e.clientX
     const vw = window.innerWidth
     if (x < vw / 2) prevImage()
     else nextImage()
   }
 
+  const scrollToBooking = () => {
+    // SPA-навигация: добавляем query param, главная страница читает его и скроллит к бронингу
+    router.push("/?scrollTo=booking")
+  }
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="border-b" data-aos="fade" data-aos-onload>
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -176,7 +142,6 @@ export default function AnapaPage() {
         </div>
       </header>
 
-      {/* Hero */}
       <section className="py-8">
         <div className="container mx-auto px-4">
           <div className="flex items-center gap-2 mb-4" data-aos="slide-up" data-aos-delay="100">
@@ -203,7 +168,6 @@ export default function AnapaPage() {
         </div>
       </section>
 
-      {/* Image Gallery */}
       <section className="py-8">
         <div className="container mx-auto px-4">
           <div className="relative max-w-4xl mx-auto" data-aos="zoom-in" data-aos-delay="400">
@@ -216,7 +180,6 @@ export default function AnapaPage() {
                 draggable={false}
               />
 
-              {/* Desktop arrows (visible on md+) */}
               <button
                 onClick={prevImage}
                 className="hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full transition-all duration-300 hover:scale-110 backdrop-blur-sm"
@@ -252,7 +215,6 @@ export default function AnapaPage() {
         </div>
       </section>
 
-      {/* Description & Quick Info */}
       <section className="py-12">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -313,7 +275,6 @@ export default function AnapaPage() {
         </div>
       </section>
 
-      {/* Facilities */}
       <section className="py-12 bg-gradient-to-b from-muted/30 to-background">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-serif font-bold mb-8 text-center bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent" data-aos="slide-up">
@@ -352,7 +313,6 @@ export default function AnapaPage() {
         </div>
       </section>
 
-      {/* CTA */}
       <section className="py-16">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-4xl font-serif font-bold mb-6 bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent" data-aos="slide-up">
@@ -372,7 +332,6 @@ export default function AnapaPage() {
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="bg-black text-white py-8" data-aos="fade-up">
         <div className="container mx-auto px-4 text-center">
           <Link href="/" className="text-2xl font-bold text-primary mb-4 inline-block transition-transform duration-300">Team Rive</Link>
@@ -380,112 +339,125 @@ export default function AnapaPage() {
         </div>
       </footer>
 
-      {/* Fullscreen modal for gallery */}
       {modalOpen && (
         <div
-          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
-          // блокируем скролл и ловим клики/тачи
+          className="fixed inset-0 flex items-center justify-center"
+          // overlay: solid black semi
+          style={{ background: "rgba(0,0,0,0.92)", zIndex: 1000, touchAction: "none" }}
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
-          // на десктопе клик по фону не должен листать, поэтому обработку клика делаем на внутренней области
+          onMouseDown={(e) => { /* prevent background actions */ e.preventDefault() }}
         >
-          {/* Close button (always visible, top-right) */}
+          {/* Close button - explicit zIndex so it's always clickable */}
           <button
-            className="absolute top-4 right-4 z-80 bg-black/40 text-white rounded-full p-3 md:p-2 shadow-lg"
             onClick={closeModal}
             aria-label="Close"
+            style={{
+              position: "absolute",
+              top: 12,
+              right: 12,
+              zIndex: 1003,
+              background: "rgba(0,0,0,0.45)",
+              color: "white",
+              border: "none",
+              padding: 10,
+              borderRadius: 999,
+            }}
           >
             ✕
           </button>
 
-          {/* Desktop visible arrows (md+) - kept for keyboard/desktop users */}
+          {/* Desktop arrows */}
           <button
             onClick={prevImage}
-            className="hidden md:flex absolute left-6 top-1/2 -translate-y-1/2 z-70 p-3 bg-black/30 rounded-full text-white"
             aria-label="Prev"
-          >
-            ‹
-          </button>
+            style={{
+              display: window.innerWidth >= 768 ? "flex" : "none",
+              position: "absolute",
+              left: 24,
+              top: "50%",
+              transform: "translateY(-50%)",
+              zIndex: 1002,
+              background: "rgba(0,0,0,0.28)",
+              color: "white",
+              border: "none",
+              padding: 12,
+              borderRadius: 8,
+            }}
+          >‹</button>
 
           <button
             onClick={nextImage}
-            className="hidden md:flex absolute right-6 top-1/2 -translate-y-1/2 z-70 p-3 bg-black/30 rounded-full text-white"
             aria-label="Next"
-          >
-            ›
-          </button>
+            style={{
+              display: window.innerWidth >= 768 ? "flex" : "none",
+              position: "absolute",
+              right: 24,
+              top: "50%",
+              transform: "translateY(-50%)",
+              zIndex: 1002,
+              background: "rgba(0,0,0,0.28)",
+              color: "white",
+              border: "none",
+              padding: 12,
+              borderRadius: 8,
+            }}
+          >›</button>
 
-          {/* Clickable halves on mobile/any device — they are transparent and cover left/right half.
-              z-index set below close button so close stays clickable. */}
-          <div
-            className="absolute inset-0 z-60 flex"
-            // onClick на обёртке может конфликтовать с внутренними элементами, поэтому разделяем по половинам
-            aria-hidden
-          >
+          {/* Clickable halves (below the close button) */}
+          <div style={{ position: "absolute", inset: 0, zIndex: 1001, display: "flex" }} aria-hidden>
             <div
-              className="w-1/2 h-full"
-              onClick={(e) => {
-                e.stopPropagation()
-                prevImage()
-              }}
+              style={{ flex: 1, height: "100%" }}
+              onClick={(e) => { e.stopPropagation(); prevImage() }}
             />
             <div
-              className="w-1/2 h-full"
-              onClick={(e) => {
-                e.stopPropagation()
-                nextImage()
-              }}
+              style={{ flex: 1, height: "100%" }}
+              onClick={(e) => { e.stopPropagation(); nextImage() }}
             />
           </div>
 
-          <div className="max-w-full max-h-full flex items-center justify-center px-4" onClick={(e) => {
-            // если клик внутри изображения — определяем сторону и листаем (для мыши)
-            // но чтобы крестик работал, он выше по z-index
-            // предотвращаем всплытие к панели половин (они ниже по z-index)
-            e.stopPropagation()
-          }}>
+          {/* Image container — centered, constrained to viewport with padding */}
+          <div
+            onClick={(e) => {
+              // prevent outer halves click from triggering when clicking the image container itself
+              e.stopPropagation()
+              // If user clicks inside image area with a mouse, allow determination by side
+              if ((e as React.MouseEvent).clientX !== undefined) onModalAreaClick(e as React.MouseEvent)
+            }}
+            style={{
+              zIndex: 1002,
+              maxWidth: "calc(100vw - 32px)",
+              maxHeight: "calc(100dvh - 32px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 8,
+            }}
+          >
             <img
               src={images[currentImageIndex]}
               alt={`Large ${currentImageIndex + 1}`}
-              className="max-w-[100vw] max-h-[100dvh] object-contain"
-              style={{ width: "auto", height: "auto", touchAction: "manipulation" }}
               draggable={false}
+              style={{
+                width: "auto",
+                height: "auto",
+                maxWidth: "100%",
+                maxHeight: "100%",
+                objectFit: "contain",
+                borderRadius: 8,
+                touchAction: "manipulation",
+                WebkitUserSelect: "none",
+                userSelect: "none",
+                MozUserSelect: "none",
+              }}
             />
           </div>
 
-          {/* Footer hint */}
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/80 text-sm z-80 px-3 py-1 bg-black/30 rounded-md">
+          <div style={{ position: "absolute", bottom: 12, left: "50%", transform: "translateX(-50%)", color: "rgba(255,255,255,0.85)", fontSize: 13, zIndex: 1003 }}>
             Esc — выйти • Нажмите по левой/правой стороне экрана или свайпните для листания
           </div>
         </div>
       )}
-
-      <style jsx>{`
-        /* Ensure modal image won't stretch on weird viewports; use contain and dvh for mobile */
-        .object-contain {
-          /* make sure it respects both width and height constraints */
-          max-width: 100vw;
-          max-height: 100dvh;
-          object-fit: contain;
-        }
-
-        /* On some older mobile browsers svh/dvh might not be supported; provide fallback */
-        @supports not (height: 100dvh) {
-          .object-contain {
-            max-height: 100vh;
-          }
-        }
-
-        /* slightly enlarge close button on small devices for easier tapping */
-        @media (max-width: 640px) {
-          button[aria-label="Close"] {
-            top: 10px;
-            right: 10px;
-            padding: 10px;
-            font-size: 18px;
-          }
-        }
-      `}</style>
     </div>
   )
 }
