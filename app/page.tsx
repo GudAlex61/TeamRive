@@ -651,7 +651,6 @@ export default function HomePage() {
           <div className="border-t border-gray-800 mt-8 sm:mt-12 pt-6 text-center text-gray-400"><p className="text-sm sm:text-lg">&copy; 2024 Team Rive. Все права защищены.</p></div>
         </div>
       </footer>
-
       {/* Important global styles (preserved) */}
       <style jsx global>{`
         html, body {
