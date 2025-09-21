@@ -94,7 +94,7 @@ export default function HomePage() {
     if (params.get('scrollTo') === 'booking') {
       const el = document.getElementById('booking-form')
       if (el) {
-        // даём время на монтирование изображений/компонентов
+        // даём время на монтирование изображений/компоненто
         setTimeout(() => {
           try {
             // фокусируем для доступности (без скролла) и прокручиваем
