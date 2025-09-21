@@ -1,4 +1,3 @@
-// app/page.tsx
 "use client"
 
 import type React from "react"
@@ -44,6 +43,7 @@ export default function HomePage() {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const router = useRouter()
 
+  // calendar refs
   const rangeControlRef = useRef<HTMLDivElement | null>(null)
   const popupRef = useRef<HTMLDivElement | null>(null)
 
@@ -93,18 +93,21 @@ export default function HomePage() {
       // clear it — often a modal forgot to restore
       document.body.style.overflow = ""
     }
-    // also ensure html/body allow vertical scroll and avoid horizontal overflow
+    // CHANGED: don't force vertical overflow on both html and body (this causes double scrollbar).
+    // Instead, prevent horizontal overflow and clear any explicit vertical overflow values.
     try {
       document.documentElement.style.overflowX = "hidden"
       document.body.style.overflowX = "hidden"
-      document.documentElement.style.overflowY = "auto"
-      document.body.style.overflowY = "auto"
+      // clear vertical overflow so browser decides. (avoid setting to "auto" here)
+      document.documentElement.style.overflowY = ""
+      document.body.style.overflowY = ""
     } catch {}
     return () => {
       // final safety: ensure body overflow restored
       try {
         document.body.style.overflow = ""
         document.documentElement.style.overflowX = ""
+        document.documentElement.style.overflowY = ""
       } catch {}
     }
   }, [])
@@ -178,6 +181,7 @@ export default function HomePage() {
 
   const handleInputChange = (field: string, value: string) => setFormData((prev) => ({ ...prev, [field]: value }))
 
+  // === Calendar implementation copied from original and integrated ===
   const [calendarOpen, setCalendarOpen] = useState(false)
   const [calendarMonth, setCalendarMonth] = useState(() => { const now = new Date(); return new Date(now.getFullYear(), now.getMonth(), 1) })
   const [selecting, setSelecting] = useState<"start"|"end">("start")
@@ -185,7 +189,7 @@ export default function HomePage() {
   const selectedEnd = useMemo(() => (formData.checkout ? new Date(formData.checkout) : null), [formData.checkout])
 
   const startOfDay = (d: Date) => { const x = new Date(d); x.setHours(0,0,0,0); return x }
-  const formatISO = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`
+  const formatISO = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
   const isSameDay = (a: Date|null, b: Date|null) => !!a && !!b && a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate()
   const dayInRange = (d: Date) => selectedStart && selectedEnd && startOfDay(d).getTime() >= startOfDay(selectedStart).getTime() && startOfDay(d).getTime() <= startOfDay(selectedEnd).getTime()
 
@@ -212,14 +216,14 @@ export default function HomePage() {
 
   const handleDayClick = (d: Date) => {
     const clicked = startOfDay(d)
-    if (!formData.checkin && !formData.checkout) { handleInputChange("checkin", formatISO(clicked)); setSelecting("end"); return }
+    if (!formData.checkin && !formData.checkout) { handleInputChange('checkin', formatISO(clicked)); setSelecting('end'); return }
     if (formData.checkin && !formData.checkout) {
       const start = new Date(formData.checkin)
-      if (clicked.getTime() < startOfDay(start).getTime()) { handleInputChange("checkin", formatISO(clicked)); handleInputChange("checkout", formatISO(start)) }
-      else handleInputChange("checkout", formatISO(clicked))
-      setSelecting("start"); return
+      if (clicked.getTime() < startOfDay(start).getTime()) { handleInputChange('checkin', formatISO(clicked)); handleInputChange('checkout', formatISO(start)) }
+      else handleInputChange('checkout', formatISO(clicked))
+      setSelecting('start'); return
     }
-    handleInputChange("checkin", formatISO(clicked)); handleInputChange("checkout",""); setSelecting("end")
+    handleInputChange('checkin', formatISO(clicked)); handleInputChange('checkout',''); setSelecting('end')
   }
   const prevMonth = () => setCalendarMonth(m => new Date(m.getFullYear(), m.getMonth()-1,1))
   const nextMonth = () => setCalendarMonth(m => new Date(m.getFullYear(), m.getMonth()+1,1))
@@ -230,12 +234,55 @@ export default function HomePage() {
         setCalendarOpen(false)
       }
     }
-    document.addEventListener("mousedown", onDoc)
-    return () => document.removeEventListener("mousedown", onDoc)
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
   }, [calendarOpen])
 
-  const BASES = [{ id:"anapa", label:"Анапа"},{id:"volgograd", label:"Волгоград"},{id:"tuapse", label:"Туапсе"}]
-  const onSelectBase = (id:string) => handleInputChange("base", id)
+  // BASES
+  const BASES = [{ id:'anapa', label:'Анапа'},{id:'volgograd', label:'Волгоград'},{id:'tuapse', label:'Туапсе'}]
+  const onSelectBase = (id:string) => handleInputChange('base', id)
+
+  // === HERO SLIDER (replacement) ===
+  const heroImages = [
+    "/anapa/photo_2025-09-15_21-01-43.jpg?height=1080&width=1920",
+    "/football.jpg",
+    "/anapa/photo_2025-09-15_21-02-25.jpg?height=1080&width=1920",
+  ]
+  const [currentHero, setCurrentHero] = useState(0)
+  const [isPaused, setIsPaused] = useState(false)
+  const heroIntervalRef = useRef<number | null>(null)
+
+  // preload images for smooth transitions
+  useEffect(() => {
+    heroImages.forEach((src) => {
+      const img = new Image()
+      img.src = src
+    })
+  }, [])
+
+  useEffect(() => {
+    function start() {
+      stop()
+      heroIntervalRef.current = window.setInterval(() => {
+        setCurrentHero((p) => (p + 1) % heroImages.length)
+      }, 5000)
+    }
+    function stop() {
+      if (heroIntervalRef.current) { clearInterval(heroIntervalRef.current); heroIntervalRef.current = null }
+    }
+    if (!isPaused) start()
+    else stop()
+    return () => stop()
+  }, [isPaused])
+
+  // pause on visibility change
+  useEffect(() => {
+    function onVis() {
+      setIsPaused(document.hidden)
+    }
+    document.addEventListener('visibilitychange', onVis)
+    return () => document.removeEventListener('visibilitychange', onVis)
+  }, [])
 
   return (
     <div className="root-wrapper bg-background overflow-x-hidden">
@@ -244,13 +291,36 @@ export default function HomePage() {
 
       {/* HERO */}
       <section className="relative min-h-screen hero flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <img src="/anapa/photo_2025-09-15_21-01-43.jpg?height=1080&width=1920" alt="Спорт 1" className="absolute inset-0 w-full h-full object-cover" style={{ clipPath: "polygon(0 0, 36% 0, 24% 100%, 0 100%)" }} data-aos="fade" />
-          <img src="/football.jpg?.jpg?height=1080&width=1920" alt="Спорт 2" className="absolute inset-0 w-full h-full object-cover" style={{ clipPath: "polygon(36% 0, 76% 0, 76% 100%, 24% 100%)" }} data-aos="fade" />
-          <img src="/anapa/photo_2025-09-15_21-01-43.jpg?height=1080&width=1920" alt="Спорт 3" className="absolute inset-0 w-full h-full object-cover" style={{ clipPath: "polygon(76% 0, 100% 0, 100% 100%, 64% 100%)" }} data-aos="fade" />
-          <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/50 to-primary/20" />
+        {/* slides */}
+        {heroImages.map((src, i) => (
+          <div
+            key={src}
+            aria-hidden={currentHero !== i}
+            className={`absolute inset-0 w-full h-full transition-opacity duration-800 ease-[cubic-bezier(.2,.9,.2,1)] ${currentHero===i? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
+            onMouseEnter={() => setIsPaused(true)}
+            onMouseLeave={() => setIsPaused(false)}
+          >
+            <img src={src} alt={`Фон ${i+1}`} className="w-full h-full object-cover block" />
+            <div className="absolute inset-0 bg-gradient-to-br from-black/60 via-black/30 to-primary/10" />
+          </div>
+        ))}
+
+        {/* pagination dots */}
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20 flex items-center gap-3">
+          {heroImages.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrentHero(i)}
+              aria-label={`Перейти к слайду ${i+1}`}
+              className={`w-3 h-3 rounded-full transition-transform duration-200 ${currentHero===i ? 'scale-125 bg-white' : 'bg-white/60'}`}
+              onFocus={() => setIsPaused(true)}
+              onBlur={() => setIsPaused(false)}
+            />
+          ))}
         </div>
-        <div className="relative z-10 text-center text-white max-w-5xl mx-auto px-4" data-aos="fade" data-aos-onload>
+
+        {/* content */}
+        <div className="relative z-30 text-center text-white max-w-5xl mx-auto px-4" data-aos="fade" data-aos-onload>
           <h1
             className="font-serif font-bold mb-6 leading-tight bg-gradient-to-r from-white via-white to-primary/80 bg-clip-text text-transparent"
             data-aos="slide-up"
@@ -260,13 +330,11 @@ export default function HomePage() {
             Организуйте идеальные спортивные сборы
           </h1>
           <p className="text-lg sm:text-2xl md:text-3xl mb-8 text-gray-200 max-w-3xl mx-auto leading-relaxed font-medium" data-aos="slide-up" data-aos-delay="220">
-            Арендуйте современные базы в Анапе, Волгограде и Туапсе для достижения победных результатов
+            Арендуйте современные базы в Анапе, Волгограде и Туапсе для достижения победных результатов в любых видах спорта
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center" data-aos="zoom-in" data-aos-delay="320">
             <Button type="button" size="lg" className="hero-glow-button group relative overflow-hidden mx-auto" onClick={scrollToBooking}>
-              <span className="relative z-10 flex items-center gap-3">
-                Выбрать базу и забронировать
-              </span>
+              <span className="relative z-10 flex items-center gap-3">Выбрать базу и забронировать</span>
             </Button>
           </div>
         </div>
@@ -312,9 +380,9 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8" data-aos="zoom-in">
             {[
-              { city: "Анапа", image: "/anapa/photo_2025-09-15_21-02-25.jpg?height=300&width=400", features: ["Собственное футбольное поле","Бассейн 25м","Современный тренажерный зал","Комнаты на 2-3 человека"], route: "anapa" },
-              { city: "Волгоград", image: "/placeholder.svg?height=300&width=400", features: ["Легкоатлетический манеж","Крытый спортивный зал","Медицинский центр","Комфортные номера"], route: "volgograd" },
-              { city: "Туапсе", image: "/placeholder.svg?height=300&width=400", features: ["Открытые теннисные корты","Олимпийский бассейн","SPA и восстановление","Вид на горы"], route: "tuapse" },
+              { city: "Анапа", image: "/anapa/photo_2025-09-15_21-02-25.jpg?height=300&width=400", features: ["Собственное футбольное поле","Бассейн с подогревом","Современный тренажерный зал","Сауна"], route: "anapa" },
+              { city: "Волгоград", image: "/volgograd/arena.jpg?height=300&width=400", features: ["Легкоатлетический манеж","Крытый спортивный зал","Культурная программа","Занятия на олимпийском стадионе"], route: "volgograd" },
+              { city: "Туапсе", image: "/tuapse/bur1.jpg", features: ["100 м от отеля до моря","Бассейн","Вид на горы"], route: "tuapse" },
             ].map((base, index) => (
               <Card key={index} className="overflow-hidden hover:shadow-2xl transition-all duration-500 cursor-pointer group transform hover:scale-105 border-0 shadow-lg" onClick={() => navigateToBase(base.route)}>
                 <div className="relative h-56 sm:h-72 overflow-hidden">
@@ -535,7 +603,7 @@ export default function HomePage() {
                                   ‹
                                 </button>
                               </div>
-                              <div className="drp-title text-sm font-medium text-gray-800">{calendarMonth.toLocaleString("ru-RU", { month: "long", year: "numeric" })}</div>
+                              <div className="drp-title text-sm font-medium text-gray-800">{calendarMonth.toLocaleString('ru-RU', { month: 'long', year: 'numeric' })}</div>
                               <div className="drp-nav flex items-center gap-2">
                                 <button
                                   type="button"
@@ -563,12 +631,12 @@ export default function HomePage() {
                                     const inRange = dayInRange(d)
                                     const isToday = isSameDay(d, new Date())
                                     const classes = [
-                                      "drp-cell",
-                                      !isCurrentMonth ? "drp-cell--muted" : "",
-                                      isToday ? "drp-cell--today" : "",
-                                      (isStart || isEnd) ? "drp-cell--selected" : "",
-                                      inRange && !(isStart || isEnd) ? "drp-cell--inrange" : "",
-                                    ].filter(Boolean).join(" ")
+                                      'drp-cell',
+                                      !isCurrentMonth ? 'drp-cell--muted' : '',
+                                      isToday ? 'drp-cell--today' : '',
+                                      (isStart || isEnd) ? 'drp-cell--selected' : '',
+                                      inRange && !(isStart || isEnd) ? 'drp-cell--inrange' : '',
+                                    ].filter(Boolean).join(' ')
                                     return (
                                       <div
                                         key={`m0-${wi}-${di}`}
@@ -576,7 +644,7 @@ export default function HomePage() {
                                         onMouseDown={(e) => e.preventDefault()}
                                         onPointerDown={(e) => e.preventDefault()}
                                         onClick={() => handleDayClick(d)}
-                                        title={d.toLocaleDateString("ru-RU")}
+                                        title={d.toLocaleDateString('ru-RU')}
                                         tabIndex={-1}
                                         onFocus={(e) => { (e.currentTarget as HTMLElement).blur() }}
                                         role="button"
@@ -595,12 +663,12 @@ export default function HomePage() {
                                 type="button"
                                 onMouseDown={(e) => e.preventDefault()}
                                 className="drp-clear text-sm text-gray-600"
-                                onClick={() => { handleInputChange("checkin", ""); handleInputChange("checkout", ""); setSelecting("start") }}
+                                onClick={() => { handleInputChange('checkin', ''); handleInputChange('checkout', ''); setSelecting('start') }}
                               >
                                 Очистить
                               </button>
                               <div className="flex items-center gap-3">
-                                <div className="text-sm text-gray-600">{formData.checkin ? new Date(formData.checkin).toLocaleDateString("ru-RU") : "—"} — {formData.checkout ? new Date(formData.checkout).toLocaleDateString("ru-RU") : "—"}</div>
+                                <div className="text-sm text-gray-600">{formData.checkin ? new Date(formData.checkin).toLocaleDateString('ru-RU') : '—'} — {formData.checkout ? new Date(formData.checkout).toLocaleDateString('ru-RU') : '—'}</div>
                                 <button
                                   type="button"
                                   onMouseDown={(e) => e.preventDefault()}
@@ -702,11 +770,11 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="border-t border-gray-800 mt-8 sm:mt-12 pt-6 text-center text-gray-400"><p className="text-sm sm:text-lg">&copy; 2024 Team Rive. Все права защищены.</p></div>
+          <div className="border-t border-gray-800 mt-8 sm:mt-12 pt-6 text-center text-gray-400"><p className="text-sm sm:text-lg">© 2024 Team Rive. Все права защищены.</p></div>
         </div>
       </footer>
 
-      {/* Minimal AOS CSS — unchanged */}
+      {/* Combined global styles: AOS + calendar + tweaks (calendar implementation preserved) */}
       <style jsx global>{`
         [data-aos] {
           opacity: 0;
@@ -725,18 +793,109 @@ export default function HomePage() {
         [data-aos="fade-up"] { transform: translate3d(0, 30px, 0); }
         [data-aos="fade-up"].aos-animate { opacity: 1; transform: translate3d(0, 0, 0); }
 
+        /* Calendar popup and small-screen tweaks (from original) */
+        .drp-popup { position: absolute; z-index: 70; background: #fff; border: 1px solid rgba(15,23,42,0.06); border-radius: 12px; box-shadow: 0 12px 40px rgba(2,6,23,0.08); padding: 12px; width: 420px; max-width: calc(100vw - 32px); -webkit-overflow-scrolling: touch; }
+        .drp-top { display:flex; align-items:center; justify-content:space-between; gap:8px }
+        .drp-nav-btn { background: transparent; border: 0; padding: 6px; border-radius: 8px; cursor: pointer; color: #374151 }
+        .drp-title { font-weight: 600; color: #111827; font-size: 14px }
+        .drp-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; font-size: 12px; color: #6b7280; margin-bottom: 6px; }
+        .drp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+        .drp-cell { height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 10px; font-size: 14px; color: #374151; cursor: pointer; user-select: none; transition: background-color 120ms ease, color 120ms ease; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+        .drp-cell.empty { background: transparent; cursor: default; opacity: 0; }
+        .drp-cell--muted { color: #9ca3af; opacity: 0.9; }
+        .drp-cell--today { box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04); }
+        .drp-cell--selected { background: #dc2626; color: white; font-weight: 700; box-shadow: 0 6px 18px rgba(220,38,38,0.14); }
+        .drp-cell--inrange { background: #fff2f2; color: #b91c1c; }
+        .drp-actions { display:flex; gap:8px; justify-content:space-between; margin-top:10px; align-items:center }
+        .drp-clear { background: transparent; border: 0; color: #6b7280; font-size:13px; cursor:pointer; padding:8px }
+        .drp-apply { background: linear-gradient(135deg, #dc2626 0%, #b91c1c 50%, #991b1b 100%); color: white; padding: 8px 12px; border-radius: 8px; border: none; cursor: pointer; }
+
+        .hero-glow-button { display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 12px 28px; border-radius: 16px; font-weight: 700; background: linear-gradient(135deg,#dc2626 0%, #b91c1c 50%, #991b1b 100%); border: 2px solid #dc2626; color: white; box-shadow: 0 0 18px rgba(220,38,38,0.32), 0 10px 30px rgba(0,0,0,0.2); transition: transform 260ms ease, box-shadow 260ms ease; max-width: 420px; width: auto; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+
+        @media (hover: hover) and (pointer: fine) {
+          .drp-cell:hover { background: #f8fafc; }
+          .hero-glow-button:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 0 28px rgba(220,38,38,0.45), 0 18px 40px rgba(0,0,0,0.25); }
+          .hero-glow-button:active { transform: translateY(-1px) scale(0.99); }
+        }
+
+        @media (max-width: 640px) {
+          .max-w-\[680px\] { max-width: 92vw; padding-left: 6px; padding-right: 6px; }
+          .drp-popup { width: calc(100vw - 24px); left: 12px; right: 12px; bottom: 6vh; position: fixed; border-radius: 12px; max-height: calc(70vh); overflow: auto; -webkit-overflow-scrolling: touch; z-index: 9999; }
+          .drp-cell { height: 44px; font-size: 14px; }
+          .drp-actions { align-items: center; gap: 6px }
+          [role="radiogroup"] button { padding-top: 8px; padding-bottom: 8px; font-size: 13px; }
+          .range-picker .text-sm, .range-picker .text-base, .range-picker .text-gray-700 { white-space: normal !important; min-width: 0; }
+          .range-picker .px-1 { max-width: 44vw; overflow: hidden; text-overflow: ellipsis; }
+          .hero h1 { line-height: 1.05; }
+          .hero .max-w-5xl { padding-left: 12px; padding-right: 12px; }
+        }
+
+        body > #__next > div { overflow-x: hidden !important; }
+
+        @media (max-width: 380px) {
+          .hero h1 { font-size: 22px !important; }
+          .hero p { font-size: 14px !important; }
+          .hero-glow-button { padding: 10px 16px; border-radius: 12px; font-size: 14px; }
+        }
+
+
+        /* prevent horizontal overflow site-wide */
+        /* CHANGED: make html the vertical scroll owner, avoid setting vertical overflow on body.
+           This prevents two scrollbars showing (html + body or nested scroll container). */
+        html, body, #__next {
+          height: 100%;
+          margin: 0;
+          padding: 0;
+        }
+        html {
+          overflow-y: auto; /* root handles vertical scroll */
+          -webkit-overflow-scrolling: touch;
+          overflow-x: hidden;
+        }
+        body {
+          overflow-y: visible; /* do not create another scrollbar on body */
+          overflow-x: hidden;
+        }
+
+        /* root wrapper should not force its own scroll context */
+        .root-wrapper {
+          min-height: 100vh;
+          /* don't set overflow-y here; keep it inherit/visible so only html scrolls */
+        }
+
+        /* keep popup scrollable inside itself */
+        .drp-popup { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+        /* Additional tweaks from second file to ensure calendar buttons and small-grid work well */
+        .drp-nav-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 34px;
+          height: 34px;
+          border-radius: 8px;
+          border: 1px solid rgba(0,0,0,0.06);
+          background: white;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+          font-size: 18px;
+          line-height: 1;
+          padding: 0;
+          cursor: pointer;
+        }
+        .drp-nav-btn:active { transform: translateY(1px); }
+        .drp-apply { background: linear-gradient(135deg,#dc2626 0%, #b91c1c 100%); border: none; }
+        .drp-clear { background: transparent; }
+
+        .drp-grid { display: grid; grid-template-columns: repeat(7, minmax(36px,1fr)); gap:6px; }
+        .drp-cell { display:flex; align-items:center; justify-content:center; height:36px; border-radius:8px; cursor:pointer; }
+        .drp-cell--muted { opacity:0.4; }
+        .drp-cell--today { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), 0 1px 2px rgba(0,0,0,0.05); }
+        .drp-cell--selected { background: linear-gradient(135deg,#dc2626,#b91c1c); color:white; }
+        .drp-cell--inrange { background: rgba(220,38,38,0.08); }
+
         /* Keep popup/calendar scrollable — targeted rule */
         .drp-popup, textarea, .allow-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; }
 
-        /* Hero / button / calendar responsive tweaks kept, no global overflow overrides */
-        .hero-glow-button { display: inline-flex; align-items:center; justify-content:center; gap:10px; padding:12px 28px; border-radius:16px; font-weight:700; background: linear-gradient(135deg,#dc2626 0%, #b91c1c 50%, #991b1b 100%); border:2px solid #dc2626; color:white; box-shadow:0 0 18px rgba(220,38,38,0.32),0 10px 30px rgba(0,0,0,0.2); transition: transform 260ms ease, box-shadow 260ms ease; max-width:420px; width:auto; touch-action:manipulation; -webkit-tap-highlight-color: transparent; }
-
-        @media (max-width: 640px) {
-          .max-w-\\[680px\\] { max-width: 92vw; padding-left: 6px; padding-right: 6px; }
-          .drp-popup { width: calc(100vw - 24px); left: 12px; right: 12px; bottom: 6vh; position: fixed; border-radius: 12px; max-height: calc(70vh); overflow: auto; -webkit-overflow-scrolling: touch; z-index: 9999; }
-        }
-
-        
       `}</style>
     </div>
   )

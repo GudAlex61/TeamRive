@@ -1,4 +1,3 @@
-// app/volgograd/page.tsx
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
@@ -31,32 +30,18 @@ export default function VolgogradPage() {
           if (entry.isIntersecting) {
             const rawDelay = el.getAttribute("data-aos-delay") || el.dataset.aosDelay || "0"
             const delay = parseInt(rawDelay.toString(), 10) || 0
-            const doAnimate = () => {
-              el.classList.add("aos-animate")
-            }
-            if (el.hasAttribute("data-aos-onload")) {
-              const t = window.setTimeout(doAnimate, delay)
-              timeouts.push(t)
-            } else {
-              const t = window.setTimeout(() => doAnimate(), delay)
-              timeouts.push(t)
-            }
+            const doAnimate = () => el.classList.add("aos-animate")
+            const t = window.setTimeout(doAnimate, delay)
+            timeouts.push(t)
             observer.unobserve(el)
           }
         })
       },
-      {
-        threshold: 0.12,
-        root: null,
-        rootMargin: "0px",
-      }
+      { threshold: 0.12 }
     )
 
     const nodes = Array.from(document.querySelectorAll<HTMLElement>("[data-aos]"))
-    nodes.forEach((n) => {
-      if (n.classList.contains("aos-animate")) return
-      observer.observe(n)
-    })
+    nodes.forEach((n) => { if (!n.classList.contains("aos-animate")) observer.observe(n) })
 
     return () => {
       timeouts.forEach((t) => clearTimeout(t))
@@ -64,14 +49,21 @@ export default function VolgogradPage() {
     }
   }, [])
 
-  useEffect(() => {
-    if (typeof window !== "undefined") window.scrollTo(0, 0)
-  }, [])
+  useEffect(() => { if (typeof window !== "undefined") window.scrollTo(0, 0) }, [])
 
   const images = [
-    "/placeholder.svg?height=600&width=800",
-    "/placeholder.svg?height=600&width=800",
-    "/placeholder.svg?height=600&width=800",
+    "/volgograd/arena.jpg",
+    "/volgograd/arena-plan.png",
+    "/volgograd/Volzhskij-manezh-1.jpg",
+    "/volgograd/noy-standart-1.jpg",
+    "/volgograd/noy-standart-2.jpg",
+    "/volgograd/pool.jpg",
+    "/volgograd/volga-volga1.jpeg",
+    "/volgograd/volga-volga2.jpeg",
+    "/volgograd/volga-golga3.jpeg",
+    "/volgograd/volga-volga-toilet.jpeg",
+    "/volgograd/volga-volga-pool.jpeg",
+    "/volgograd/zenit-seats.jpg",
   ]
 
   const nextImage = useCallback(() => setCurrentImageIndex((p) => (p + 1) % images.length), [images.length])
@@ -79,10 +71,11 @@ export default function VolgogradPage() {
 
   const openModalAt = (idx: number) => {
     setCurrentImageIndex(idx)
-    // блокируем прокрутку корректно
+    // блокируем прокрутку корректно: сохраняем предыдущее значение и ставим hidden
     if (typeof document !== "undefined") {
       prevBodyOverflow.current = document.body.style.overflow
       document.body.style.overflow = "hidden"
+      // на iOS полезно ещё фиксировать высоту, но это может вызвать сдвиги — пока ограничимся overflow
     }
     setModalOpen(true)
   }
@@ -105,7 +98,7 @@ export default function VolgogradPage() {
     return () => window.removeEventListener("keydown", onKey)
   }, [modalOpen, nextImage, prevImage])
 
-  // Touch handlers
+  // Touch handlers for swipe
   const onTouchStart = (e: React.TouchEvent) => {
     if (!e.touches || e.touches.length === 0) return
     touchStartX.current = e.touches[0].clientX
@@ -128,6 +121,7 @@ export default function VolgogradPage() {
     touchStartY.current = null
   }
 
+  // click half-area (desktop mouse clicks also handled)
   const onModalAreaClick = (e: React.MouseEvent) => {
     const x = e.clientX
     const vw = window.innerWidth
@@ -136,29 +130,24 @@ export default function VolgogradPage() {
   }
 
   const scrollToBooking = () => {
-    // SPA navigation to trigger main page scroll handler
+    // SPA-навигация: добавляем query param, главная страница читает его и скроллит к бронингу
     router.push("/?scrollTo=booking")
   }
 
-  // NOTE: We don't inject a global "*:hover { all: unset }" hack because it breaks touch interactivity (previous bug).
-  // If you still want to disable hover styles on touch devices, we can add more targeted rules.
-
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="border-b" data-aos="fade" data-aos-onload>
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <Link href="/" className="text-2xl font-bold text-primary">Team Rive</Link>
+            <Link href="/" className="text-2xl font-bold text-primary hover:scale-105 transition-transform duration-300">Team Rive</Link>
           </div>
         </div>
       </header>
 
-      {/* Hero */}
       <section className="py-8">
         <div className="container mx-auto px-4">
           <div className="flex items-center gap-2 mb-4" data-aos="slide-up" data-aos-delay="100">
-            <Link href="/" className="text-muted-foreground">Главная</Link>
+            <Link href="/" className="text-muted-foreground hover:text-foreground transition-colors duration-300">Главная</Link>
             <span className="text-muted-foreground">/</span>
             <span>Волгоград</span>
           </div>
@@ -167,33 +156,31 @@ export default function VolgogradPage() {
             <MapPin className="w-6 h-6 text-primary" />
             <h1 className="text-4xl md:text-5xl font-serif font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">Спортивная база — Волгоград</h1>
             <div className="ml-4">
-              <Badge variant="secondary" className="text-base px-3 py-2">от 2150₽</Badge>
+              <Badge variant="secondary" className="text-base px-3 py-2 hover:scale-105 transition-transform duration-300">от 2150₽</Badge>
             </div>
           </div>
 
           <div className="flex flex-wrap gap-3 mb-8" data-aos="slide-up" data-aos-delay="300">
-            <Badge variant="secondary">Проживание в гостинице</Badge>
-            <Badge variant="secondary">3-разовое питание</Badge>
-            <Badge variant="secondary">Экскурсии и мемориалы</Badge>
-            <Badge variant="secondary">Турниры на арене</Badge>
+            <Badge variant="secondary" className="hover:scale-105 transition-transform duration-300">Проживание в гостинице</Badge>
+            <Badge variant="secondary" className="hover:scale-105 transition-transform duration-300">3-разовое питание</Badge>
+            <Badge variant="secondary" className="hover:scale-105 transition-transform duration-300">Экскурсии и мемориалы</Badge>
+            <Badge variant="secondary" className="hover:scale-105 transition-transform duration-300">Турниры на арене</Badge>
           </div>
         </div>
       </section>
 
-      {/* Image Gallery */}
       <section className="py-8">
         <div className="container mx-auto px-4">
           <div className="relative max-w-4xl mx-auto" data-aos="zoom-in" data-aos-delay="400">
-            <div className="relative h-96 md:h-[500px] rounded-lg overflow-hidden shadow-2xl bg-black flex items-center justify-center">
+            <div className="relative h-96 md:h-[520px] rounded-lg overflow-hidden shadow-2xl hover:shadow-3xl transition-shadow duration-500 bg-black flex items-center justify-center">
               <img
                 src={images[currentImageIndex] || "/placeholder.svg"}
                 alt={`Волгоград - фото ${currentImageIndex + 1}`}
-                className="max-w-full max-h-full object-contain cursor-zoom-in"
+                className="max-w-full max-h-full object-contain transition-all duration-500 cursor-zoom-in"
                 onClick={() => openModalAt(currentImageIndex)}
                 draggable={false}
               />
 
-              {/* Desktop arrows */}
               <button
                 onClick={prevImage}
                 className="hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full transition-all duration-300 hover:scale-110 backdrop-blur-sm"
@@ -229,48 +216,47 @@ export default function VolgogradPage() {
         </div>
       </section>
 
-      {/* Description & Quick Info */}
       <section className="py-12">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2" data-aos="fade-right" data-aos-delay="200">
               <h2 className="text-3xl font-serif font-bold mb-6 bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">О базе — Волгоград</h2>
               <div className="prose prose-gray max-w-none space-y-6">
-                <p className="text-muted-foreground text-lg leading-relaxed">
+                <p className="text-muted-foreground text-lg leading-relaxed transition-colors duration-300">
                   В пакет (от 2150₽) входит проживание в гостиницах «НОЙ» или «Волга-Волга», трёхразовое питание и курортный сбор. Для команд доступны комфортные номера и полный спектр сервисов.
                 </p>
-                <p className="text-muted-foreground text-lg leading-relaxed">
+                <p className="text-muted-foreground text-lg leading-relaxed transition-colors duration-300">
                   Для участников предусмотрено посещение музея «Сталинградская битва» и Мемориала Мамаев Курган. Турниры и сборы проходят на стадионе «Волгоград-Арена» и в манежах.
                 </p>
-                <p className="text-muted-foreground text-lg leading-relaxed">
+                <p className="text-muted-foreground text-lg leading-relaxed transition-colors duration-300">
                   Организуем трансфер, питание, медицинское сопровождение и тренировочные сессии под ключ.
                 </p>
               </div>
             </div>
 
             <div data-aos="fade-left" data-aos-delay="400">
-              <Card className="shadow-xl transition-all duration-500 border-0 bg-gradient-to-br from-white via-white to-gray-50/50">
+              <Card className="shadow-xl transition-all duration-500 border-0 bg-gradient-to-br from-white via-white to-gray-50/50 hover:scale-105">
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10 rounded-lg pointer-events-none"></div>
                 <CardContent className="relative p-6">
                   <h3 className="font-semibold mb-4 text-xl">Быстрая информация</h3>
                   <div className="space-y-3">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 transition-transform duration-300">
                       <Users className="w-5 h-5 text-primary" />
                       <span className="text-base">Команды до 50 человек</span>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 transition-transform duration-300">
                       <MapPin className="w-5 h-5 text-primary" />
                       <span className="text-base">Близко к ключевым спортобъектам</span>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 transition-transform duration-300">
                       <Dumbbell className="w-5 h-5 text-primary" />
                       <span className="text-base">Тренажёрные и манежи</span>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 transition-transform duration-300">
                       <UtensilsCrossed className="w-5 h-5 text-primary" />
                       <span className="text-base">3-разовое питание</span>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 transition-transform duration-300">
                       <Car className="w-5 h-5 text-primary" />
                       <span className="text-base">Трансфер по запросу</span>
                     </div>
@@ -278,9 +264,10 @@ export default function VolgogradPage() {
 
                   <div className="mt-6 text-center">
                     <div className="text-2xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">от 2150₽</div>
-                    <Button
-                      className="w-full mt-2 py-4 text-lg shadow-lg bg-gradient-to-r from-primary to-primary/90"
-                      onClick={scrollToBooking}
+                    <Button 
+                      size="lg" 
+                      onClick={scrollToBooking} 
+                      className="text-lg py-6 px-8 transition-all duration-300 shadow-lg bg-gradient-to-r from-primary to-primary/90"
                     >
                       Забронировать базу
                     </Button>
@@ -292,7 +279,6 @@ export default function VolgogradPage() {
         </div>
       </section>
 
-      {/* Facilities */}
       <section className="py-12 bg-gradient-to-b from-muted/30 to-background">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-serif font-bold mb-8 text-center bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent" data-aos="slide-up">
@@ -305,7 +291,7 @@ export default function VolgogradPage() {
                 icon: Dumbbell,
                 title: "Спортивные объекты",
                 features: [
-                  "Стадион «Волгоград-Арена»",
+                  "Стадион «Волгоград-Арена",
                   "Футбольные манежи и залы",
                   "Тренажёрные залы",
                 ],
@@ -336,19 +322,19 @@ export default function VolgogradPage() {
                 features: ["Трансфер от/до аэропорта и вокзала"],
               },
             ].map((facility, index) => (
-              <Card key={index} className="border-0 shadow-lg bg-white/80 backdrop-blur-sm" data-aos="zoom-in" data-aos-delay={100 + index * 100}>
+              <Card key={index} className="group transition-all duration-500 border-0 shadow-lg bg-white/80 backdrop-blur-sm" data-aos="zoom-in" data-aos-delay={100 + index * 100}>
                 <CardContent className="p-6">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
+                    <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center transition-transform duration-300">
                       <facility.icon className="w-5 h-5 text-primary-foreground" />
                     </div>
-                    <h3 className="font-semibold text-lg">{facility.title}</h3>
+                    <h3 className="font-semibold text-lg transition-colors duration-300">{facility.title}</h3>
                   </div>
                   <ul className="text-base text-muted-foreground space-y-2">
                     {facility.features.map((feature, featureIndex) => (
-                      <li key={featureIndex} className="flex items-center gap-3">
-                        <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
-                        <span>{feature}</span>
+                      <li key={featureIndex} className="flex items-center gap-3 transition-transform duration-300">
+                        <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0 transition-transform"></div>
+                        <span className="transition-colors">{feature}</span>
                       </li>
                     ))}
                   </ul>
@@ -359,7 +345,6 @@ export default function VolgogradPage() {
         </div>
       </section>
 
-      {/* CTA */}
       <section className="py-16">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-4xl font-serif font-bold mb-6 bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent" data-aos="slide-up">
@@ -369,33 +354,33 @@ export default function VolgogradPage() {
             Оставьте заявку — менеджер рассчитает пакет и проконсультирует по программам и экскурсиям.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center" data-aos="zoom-in" data-aos-delay="400">
-            <Button size="lg" onClick={scrollToBooking} className="text-lg py-6 px-8 shadow-lg bg-gradient-to-r from-primary to-primary/90">
+            <Button size="lg" onClick={scrollToBooking} className="text-lg py-6 px-8 transition-all duration-300 shadow-lg bg-gradient-to-r from-primary to-primary/90">
               Оставить заявку
             </Button>
-            <Button size="lg" variant="outline" asChild className="text-lg py-6 px-8 border-2">
+            <Button size="lg" variant="outline" asChild className="text-lg py-6 px-8 transition-all duration-300 border-2">
               <Link href="tel:+74951234567">Позвонить сейчас</Link>
             </Button>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="bg-black text-white py-8" data-aos="fade-up">
         <div className="container mx-auto px-4 text-center">
-          <Link href="/" className="text-2xl font-bold text-primary mb-4 inline-block">Team Rive</Link>
+          <Link href="/" className="text-2xl font-bold text-primary mb-4 inline-block transition-transform duration-300">Team Rive</Link>
           <p className="text-gray-400">&copy; 2024 Team Rive. Все права защищены.</p>
         </div>
       </footer>
 
-      {/* Fullscreen modal */}
       {modalOpen && (
         <div
-          className="fixed inset-0 z-50 bg-black/92 flex items-center justify-center"
+          className="fixed inset-0 flex items-center justify-center"
+          // overlay: solid black semi
+          style={{ background: "rgba(0,0,0,0.92)", zIndex: 1000, touchAction: "none" }}
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
-          style={{ touchAction: "none" }}
+          onMouseDown={(e) => { /* prevent background actions */ e.preventDefault() }}
         >
-          {/* close - always on top */}
+          {/* Close button - explicit zIndex so it's always clickable */}
           <button
             onClick={closeModal}
             aria-label="Close"
@@ -414,12 +399,12 @@ export default function VolgogradPage() {
             ✕
           </button>
 
-          {/* desktop arrows */}
+          {/* Desktop arrows */}
           <button
             onClick={prevImage}
             aria-label="Prev"
             style={{
-              display: typeof window !== "undefined" && window.innerWidth >= 768 ? "flex" : "none",
+              display: window.innerWidth >= 768 ? "flex" : "none",
               position: "absolute",
               left: 24,
               top: "50%",
@@ -431,15 +416,13 @@ export default function VolgogradPage() {
               padding: 12,
               borderRadius: 8,
             }}
-          >
-            ‹
-          </button>
+          >‹</button>
 
           <button
             onClick={nextImage}
             aria-label="Next"
             style={{
-              display: typeof window !== "undefined" && window.innerWidth >= 768 ? "flex" : "none",
+              display: window.innerWidth >= 768 ? "flex" : "none",
               position: "absolute",
               right: 24,
               top: "50%",
@@ -451,28 +434,54 @@ export default function VolgogradPage() {
               padding: 12,
               borderRadius: 8,
             }}
-          >
-            ›
-          </button>
+          >›</button>
 
-          {/* clickable halves (below close button) */}
+          {/* Clickable halves (below the close button) */}
           <div style={{ position: "absolute", inset: 0, zIndex: 1001, display: "flex" }} aria-hidden>
-            <div style={{ flex: 1, height: "100%" }} onClick={(e) => { e.stopPropagation(); prevImage() }} />
-            <div style={{ flex: 1, height: "100%" }} onClick={(e) => { e.stopPropagation(); nextImage() }} />
+            <div
+              style={{ flex: 1, height: "100%" }}
+              onClick={(e) => { e.stopPropagation(); prevImage() }}
+            />
+            <div
+              style={{ flex: 1, height: "100%" }}
+              onClick={(e) => { e.stopPropagation(); nextImage() }}
+            />
           </div>
 
+          {/* Image container — centered, constrained to viewport with padding */}
           <div
             onClick={(e) => {
+              // prevent outer halves click from triggering when clicking the image container itself
               e.stopPropagation()
+              // If user clicks inside image area with a mouse, allow determination by side
               if ((e as React.MouseEvent).clientX !== undefined) onModalAreaClick(e as React.MouseEvent)
             }}
-            style={{ zIndex: 1002, maxWidth: "calc(100vw - 32px)", maxHeight: "calc(100dvh - 32px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 8 }}
+            style={{
+              zIndex: 1002,
+              maxWidth: "calc(100vw - 32px)",
+              maxHeight: "calc(100dvh - 32px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 8,
+            }}
           >
             <img
               src={images[currentImageIndex]}
               alt={`Large ${currentImageIndex + 1}`}
               draggable={false}
-              style={{ width: "auto", height: "auto", maxWidth: "100%", maxHeight: "100%", objectFit: "contain", borderRadius: 8, touchAction: "manipulation", userSelect: "none" }}
+              style={{
+                width: "auto",
+                height: "auto",
+                maxWidth: "100%",
+                maxHeight: "100%",
+                objectFit: "contain",
+                borderRadius: 8,
+                touchAction: "manipulation",
+                WebkitUserSelect: "none",
+                userSelect: "none",
+                MozUserSelect: "none",
+              }}
             />
           </div>
 
