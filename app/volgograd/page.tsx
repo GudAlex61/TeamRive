@@ -490,22 +490,6 @@ export default function VolgogradPage() {
           </div>
         </div>
       )}
-
-      {/* Small AOS CSS */}
-      <style jsx global>{`
-        [data-aos] { opacity: 0; transform: translate3d(0,0,0); transition: opacity 0.6s ease-out, transform 0.6s ease-out; }
-        [data-aos="fade"].aos-animate { opacity: 1; transform: none; }
-        [data-aos="slide-up"] { transform: translate3d(0,50px,0); }
-        [data-aos="slide-up"].aos-animate { opacity: 1; transform: translate3d(0,0,0); }
-        [data-aos="fade-right"] { transform: translate3d(-50px,0,0); }
-        [data-aos="fade-right"].aos-animate { opacity: 1; transform: translate3d(0,0,0); }
-        [data-aos="fade-left"] { transform: translate3d(50px,0,0); }
-        [data-aos="fade-left"].aos-animate { opacity: 1; transform: translate3d(0,0,0); }
-        [data-aos="zoom-in"] { transform: scale(0.9); }
-        [data-aos="zoom-in"].aos-animate { opacity: 1; transform: scale(1); }
-        [data-aos="fade-up"] { transform: translate3d(0,30px,0); }
-        [data-aos="fade-up"].aos-animate { opacity: 1; transform: translate3d(0,0,0); }
-      `}</style>
     </div>
   )
 }
