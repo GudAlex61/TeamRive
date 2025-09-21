@@ -1,4 +1,3 @@
-// app/page.tsx
 "use client"
 
 import type React from "react"
@@ -87,18 +86,72 @@ export default function HomePage() {
   useEffect(() => { if (typeof window !== "undefined") window.scrollTo(0, 0) }, [])
 
   // NOTE: Вся логика, которая использовала useSearchParams, вынесена в client-компонент BookingScroller.
-  // С этой страницы мы просто вызываем роут с параметром, который поймает BookingScroller.
+  // Но на некоторых мобильных браузерах навигация с router.push('/?scrollTo=booking') не всегда корректно приводит к плавной прокрутке.
+  // Поэтому добавляем надёжный клиентский fallback: пробуем найти элемент и плавно прокрутить прямо здесь.
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('scrollTo') === 'booking') {
+      const el = document.getElementById('booking-form')
+      if (el) {
+        // даём время на монтирование изображений/компонентов
+        setTimeout(() => {
+          try {
+            // фокусируем для доступности (без скролла) и прокручиваем
+            (el as HTMLElement).tabIndex = -1,
+            (el as HTMLElement).focus({ preventScroll: true });
+            (el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'start' })
+          } catch (e) {
+            const y = window.pageYOffset + el.getBoundingClientRect().top
+            window.scrollTo(0, y)
+          }
+        }, 70)
+      }
+      // удаляем параметр, чтобы не повторять при повторном рендере
+      params.delete('scrollTo')
+      const newQs = params.toString()
+      const newUrl = newQs ? `${window.location.pathname}?${newQs}` : window.location.pathname
+      try { window.history.replaceState({}, '', newUrl) } catch (e) { /* ignore */ }
+    }
+  }, [])
+
   const toggleFaq = (index: number) => setOpenFaq(openFaq === index ? null : index)
   const navigateToBase = (baseName: string) => router.push(`/${baseName}`)
-  const scrollToBooking = () => router.push("/?scrollTo=booking")
+
+  const scrollToBooking = () => {
+    if (typeof window === 'undefined') return
+    const el = document.getElementById('booking-form')
+    if (el) {
+      try {
+        // Фокусируем для доступности (с preventScroll) и прокручиваем плавно
+        (el as HTMLElement).tabIndex = -1,
+        (el as HTMLElement).focus({ preventScroll: true })
+        ;(el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'start' })
+      } catch (e) {
+        // fallback
+        const y = window.pageYOffset + el.getBoundingClientRect().top
+        window.scrollTo(0, y)
+      }
+      // Обновляем URL без навигации, чтобы при шаринге открывалась форма
+      try {
+        const params = new URLSearchParams(window.location.search)
+        params.set('scrollTo', 'booking')
+        window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`)
+      } catch (e) { /* ignore */ }
+      return
+    }
+    // если элемент ещё не в DOM (редкий кейс), делаем router.push — BookingScroller обработает scrollTo
+    router.push('/?scrollTo=booking')
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
     setSubmitError(null)
     try {
-      const response = await fetch("/api/submit-booking", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/submit-booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,
@@ -107,18 +160,18 @@ export default function HomePage() {
           dates: `${formData.checkin} - ${formData.checkout}`,
           participants: formData.people,
           sport: formData.sport,
-          message: formData.additional || "",
+          message: formData.additional || '',
         }),
       })
-      if (!response.ok) throw new Error("Failed to submit booking")
+      if (!response.ok) throw new Error('Failed to submit booking')
       setIsSubmitted(true)
       setTimeout(() => {
         setIsSubmitted(false)
-        setFormData({ name: "", phone: "", email: "", base: "", checkin: "", checkout: "", people: "", sport: "", additional: "" })
+        setFormData({ name: '', phone: '', email: '', base: '', checkin: '', checkout: '', people: '', sport: '', additional: '' })
       }, 3000)
     } catch (error) {
-      console.error("Error submitting booking:", error)
-      setSubmitError("Произошла ошибка при отправке заявки. Пожалуйста, попробуйте еще раз.")
+      console.error('Error submitting booking:', error)
+      setSubmitError('Произошла ошибка при отправке заявки. Пожалуйста, попробуйте еще раз.')
     } finally { setIsSubmitting(false) }
   }
 
@@ -126,12 +179,12 @@ export default function HomePage() {
 
   const [calendarOpen, setCalendarOpen] = useState(false)
   const [calendarMonth, setCalendarMonth] = useState(() => { const now = new Date(); return new Date(now.getFullYear(), now.getMonth(), 1) })
-  const [selecting, setSelecting] = useState<"start"|"end">("start")
+  const [selecting, setSelecting] = useState<'start'|'end'>('start')
   const selectedStart = useMemo(() => (formData.checkin ? new Date(formData.checkin) : null), [formData.checkin])
   const selectedEnd = useMemo(() => (formData.checkout ? new Date(formData.checkout) : null), [formData.checkout])
 
   const startOfDay = (d: Date) => { const x = new Date(d); x.setHours(0,0,0,0); return x }
-  const formatISO = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`
+  const formatISO = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
   const isSameDay = (a: Date|null, b: Date|null) => !!a && !!b && a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate()
   const dayInRange = (d: Date) => selectedStart && selectedEnd && startOfDay(d).getTime() >= startOfDay(selectedStart).getTime() && startOfDay(d).getTime() <= startOfDay(selectedEnd).getTime()
 
@@ -158,14 +211,14 @@ export default function HomePage() {
 
   const handleDayClick = (d: Date) => {
     const clicked = startOfDay(d)
-    if (!formData.checkin && !formData.checkout) { handleInputChange("checkin", formatISO(clicked)); setSelecting("end"); return }
+    if (!formData.checkin && !formData.checkout) { handleInputChange('checkin', formatISO(clicked)); setSelecting('end'); return }
     if (formData.checkin && !formData.checkout) {
       const start = new Date(formData.checkin)
-      if (clicked.getTime() < startOfDay(start).getTime()) { handleInputChange("checkin", formatISO(clicked)); handleInputChange("checkout", formatISO(start)) }
-      else handleInputChange("checkout", formatISO(clicked))
-      setSelecting("start"); return
+      if (clicked.getTime() < startOfDay(start).getTime()) { handleInputChange('checkin', formatISO(clicked)); handleInputChange('checkout', formatISO(start)) }
+      else handleInputChange('checkout', formatISO(clicked))
+      setSelecting('start'); return
     }
-    handleInputChange("checkin", formatISO(clicked)); handleInputChange("checkout",""); setSelecting("end")
+    handleInputChange('checkin', formatISO(clicked)); handleInputChange('checkout',''); setSelecting('end')
   }
   const prevMonth = () => setCalendarMonth(m => new Date(m.getFullYear(), m.getMonth()-1,1))
   const nextMonth = () => setCalendarMonth(m => new Date(m.getFullYear(), m.getMonth()+1,1))
@@ -176,12 +229,12 @@ export default function HomePage() {
         setCalendarOpen(false)
       }
     }
-    document.addEventListener("mousedown", onDoc)
-    return () => document.removeEventListener("mousedown", onDoc)
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
   }, [calendarOpen])
 
-  const BASES = [{ id:"anapa", label:"Анапа"},{id:"volgograd", label:"Волгоград"},{id:"tuapse", label:"Туапсе"}]
-  const onSelectBase = (id:string) => handleInputChange("base", id)
+  const BASES = [{ id:'anapa', label:'Анапа'},{id:'volgograd', label:'Волгоград'},{id:'tuapse', label:'Туапсе'}]
+  const onSelectBase = (id:string) => handleInputChange('base', id)
 
   return (
     <div className="root-wrapper h-full bg-background overflow-x-hidden">
@@ -189,11 +242,11 @@ export default function HomePage() {
       <BookingScroller />
 
       {/* HERO */}
-      <section className="relative h-[100dvh] hero flex items-center justify-center overflow-hidden" style={{ minHeight: "100dvh" }}>
+      <section className="relative h-[100dvh] hero flex items-center justify-center overflow-hidden" style={{ minHeight: '100dvh' }}>
         <div className="absolute inset-0 z-0">
-          <img src="/anapa/photo_2025-09-15_21-01-43.jpg?height=1080&width=1920" alt="Спорт 1" className="absolute inset-0 w-full h-full object-cover" style={{ clipPath: "polygon(0 0, 36% 0, 24% 100%, 0 100%)" }} data-aos="fade" />
-          <img src="/football.jpg?.jpg?height=1080&width=1920" alt="Спорт 2" className="absolute inset-0 w-full h-full object-cover" style={{ clipPath: "polygon(36% 0, 76% 0, 76% 100%, 24% 100%)" }} data-aos="fade" />
-          <img src="/anapa/photo_2025-09-15_21-01-43.jpg?height=1080&width=1920" alt="Спорт 3" className="absolute inset-0 w-full h-full object-cover" style={{ clipPath: "polygon(76% 0, 100% 0, 100% 100%, 64% 100%)" }} data-aos="fade" />
+          <img src="/anapa/photo_2025-09-15_21-01-43.jpg?height=1080&width=1920" alt="Спорт 1" className="absolute inset-0 w-full h-full object-cover" style={{ clipPath: 'polygon(0 0, 36% 0, 24% 100%, 0 100%)' }} data-aos="fade" />
+          <img src="/football.jpg?.jpg?height=1080&width=1920" alt="Спорт 2" className="absolute inset-0 w-full h-full object-cover" style={{ clipPath: 'polygon(36% 0, 76% 0, 76% 100%, 24% 100%)' }} data-aos="fade" />
+          <img src="/anapa/photo_2025-09-15_21-01-43.jpg?height=1080&width=1920" alt="Спорт 3" className="absolute inset-0 w-full h-full object-cover" style={{ clipPath: 'polygon(76% 0, 100% 0, 100% 100%, 64% 100%)' }} data-aos="fade" />
           <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/50 to-primary/20" />
         </div>
         <div className="relative z-10 text-center text-white max-w-5xl mx-auto px-4" data-aos="fade" data-aos-onload>
@@ -201,7 +254,7 @@ export default function HomePage() {
             className="font-serif font-bold mb-6 leading-tight bg-gradient-to-r from-white via-white to-primary/80 bg-clip-text text-transparent"
             data-aos="slide-up"
             data-aos-delay="120"
-            style={{ fontSize: "clamp(28px, 6vw, 64px)" }}
+            style={{ fontSize: 'clamp(28px, 6vw, 64px)' }}
           >
             Организуйте идеальные спортивные сборы
           </h1>
@@ -229,10 +282,10 @@ export default function HomePage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8" data-aos="fade-up">
             {[
-              { icon: Dumbbell, title: "Современная инфраструктура", description: "Новейшее оборудование и спортивные объекты" },
-              { icon: Users, title: "Проживание и питание 'всё включено'", description: "Комфортные номера и качественное питание" },
-              { icon: Car, title: "Трансфер от/до вокзала", description: "Удобная доставка команды к месту сборов" },
-              { icon: Phone, title: "Круглосуточная поддержка", description: "Всегда готовы помочь и решить любые вопросы" },
+              { icon: Dumbbell, title: 'Современная инфраструктура', description: 'Новейшее оборудование и спортивные объекты' },
+              { icon: Users, title: "Проживание и питание 'всё включено'", description: 'Комфортные номера и качественное питание' },
+              { icon: Car, title: 'Трансфер от/до вокзала', description: 'Удобная доставка команды к месту сборов' },
+              { icon: Phone, title: 'Круглосуточная поддержка', description: 'Всегда готовы помочь и решить любые вопросы' },
             ].map((advantage, index) => (
               <div key={index} className="text-center group hover:transform hover:scale-105 transition-all duration-300">
                 <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6 group-hover:shadow-lg transition-shadow">
@@ -258,13 +311,13 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8" data-aos="zoom-in">
             {[
-              { city: "Анапа", image: "/anapa/photo_2025-09-15_21-02-25.jpg?height=300&width=400", features: ["Собственное футбольное поле","Бассейн 25м","Современный тренажерный зал","Комнаты на 2-3 человека"], route: "anapa" },
-              { city: "Волгоград", image: "/placeholder.svg?height=300&width=400", features: ["Легкоатлетический манеж","Крытый спортивный зал","Медицинский центр","Комфортные номера"], route: "volgograd" },
-              { city: "Туапсе", image: "/placeholder.svg?height=300&width=400", features: ["Открытые теннисные корты","Олимпийский бассейн","SPA и восстановление","Вид на горы"], route: "tuapse" },
+              { city: 'Анапа', image: '/anapa/photo_2025-09-15_21-02-25.jpg?height=300&width=400', features: ['Собственное футбольное поле','Бассейн 25м','Современный тренажерный зал','Комнаты на 2-3 человека'], route: 'anapa' },
+              { city: 'Волгоград', image: '/placeholder.svg?height=300&width=400', features: ['Легкоатлетический манеж','Крытый спортивный зал','Медицинский центр','Комфортные номера'], route: 'volgograd' },
+              { city: 'Туапсе', image: '/placeholder.svg?height=300&width=400', features: ['Открытые теннисные корты','Олимпийский бассейн','SPA и восстановление','Вид на горы'], route: 'tuapse' },
             ].map((base, index) => (
               <Card key={index} className="overflow-hidden hover:shadow-2xl transition-all duration-500 cursor-pointer group transform hover:scale-105 border-0 shadow-lg" onClick={() => navigateToBase(base.route)}>
                 <div className="relative h-56 sm:h-72 overflow-hidden">
-                  <img src={base.image || "/placeholder.svg"} alt={`База в ${base.city}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                  <img src={base.image || '/placeholder.svg'} alt={`База в ${base.city}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   <div className="absolute top-3 right-3 bg-primary text-primary-foreground px-2 py-1 rounded-full text-sm font-medium">От 2200 руб/чел</div>
                 </div>
@@ -306,11 +359,11 @@ export default function HomePage() {
           <div className="max-w-4xl mx-auto" data-aos="fade-up">
             <div className="space-y-6 sm:space-y-8">
               {[
-                { step: 1, title: "Выбор базы и дат", description: "Определите подходящую базу и желаемые даты проведения сборов" },
-                { step: 2, title: "Заполнение заявки", description: "Оставьте заявку с указанием всех необходимых деталей" },
-                { step: 3, title: "Звонок менеджера", description: "Наш менеджер свяжется с вами для уточнения деталей" },
-                { step: 4, title: "Подтверждение брони", description: "Подтверждаем бронирование и заключаем договор" },
-                { step: 5, title: "Заезд и проведение сборов", description: "Приезжайте и проводите эффективные тренировки" },
+                { step: 1, title: 'Выбор базы и дат', description: 'Определите подходящую базу и желаемые даты проведения сборов' },
+                { step: 2, title: 'Заполнение заявки', description: 'Оставьте заявку с указанием всех необходимых деталей' },
+                { step: 3, title: 'Звонок менеджера', description: 'Наш менеджер свяжется с вами для уточнения деталей' },
+                { step: 4, title: 'Подтверждение брони', description: 'Подтверждаем бронирование и заключаем договор' },
+                { step: 5, title: 'Заезд и проведение сборов', description: 'Приезжайте и проводите эффективные тренировки' },
               ].map((item, index) => (
                 <div key={index} className="flex items-start gap-4 sm:gap-6 group hover:transform hover:translate-x-2 transition-all duration-300">
                   <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center text-primary-foreground font-bold text-lg sm:text-xl flex-shrink-0 group-hover:shadow-lg transition-shadow">
@@ -351,11 +404,11 @@ export default function HomePage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                     <div>
                       <Label htmlFor="name" className="text-base sm:text-lg font-semibold text-gray-800 mb-2 block">Имя *</Label>
-                      <Input id="name" placeholder="Введите ваше имя" required value={formData.name} onChange={(e) => handleInputChange("name", e.target.value)} disabled={isSubmitting} className="h-12 sm:h-14 text-base sm:text-lg border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 placeholder:text-gray-400 bg-white/80 backdrop-blur-sm w-full" />
+                      <Input id="name" placeholder="Введите ваше имя" required value={formData.name} onChange={(e) => handleInputChange('name', e.target.value)} disabled={isSubmitting} className="h-12 sm:h-14 text-base sm:text-lg border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 placeholder:text-gray-400 bg-white/80 backdrop-blur-sm w-full" />
                     </div>
                     <div>
                       <Label htmlFor="phone" className="text-base sm:text-lg font-semibold text-gray-800 mb-2 block">Номер телефона *</Label>
-                      <Input id="phone" type="tel" placeholder="+7 (999) 123-45-67" required value={formData.phone} onChange={(e) => handleInputChange("phone", e.target.value)} disabled={isSubmitting} className="h-12 sm:h-14 text-base sm:text-lg border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 placeholder:text-gray-400 bg-white/80 backdrop-blur-sm w-full" />
+                      <Input id="phone" type="tel" placeholder="+7 (999) 123-45-67" required value={formData.phone} onChange={(e) => handleInputChange('phone', e.target.value)} disabled={isSubmitting} className="h-12 sm:h-14 text-base sm:text-lg border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 placeholder:text-gray-400 bg-white/80 backdrop-blur-sm w-full" />
                     </div>
                   </div>
 
@@ -367,7 +420,7 @@ export default function HomePage() {
                       placeholder="your@email.com"
                       required
                       value={formData.email}
-                      onChange={(e) => handleInputChange("email", e.target.value)}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
                       disabled={isSubmitting}
                       className="h-12 sm:h-14 text-base sm:text-lg border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 placeholder:text-gray-400 bg-white/80 backdrop-blur-sm w-full"
                     />
@@ -389,18 +442,18 @@ export default function HomePage() {
                                 aria-checked={selected}
                                 onClick={() => onSelectBase(b.id)}
                                 onKeyDown={(e) => {
-                                  if (e.key === "Enter" || e.key === " ") {
+                                  if (e.key === 'Enter' || e.key === ' ') {
                                     e.preventDefault()
                                     onSelectBase(b.id)
                                   }
                                 }}
                                 className={`flex-1 px-3 py-2 sm:px-4 sm:py-3 text-sm sm:text-base font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-200 text-center whitespace-normal
                                   ${selected
-                                    ? "bg-red-50 text-red-700 border border-red-100 shadow-sm"
-                                    : "bg-white text-gray-700 hover:bg-gray-50 border border-transparent"}
+                                    ? 'bg-red-50 text-red-700 border border-red-100 shadow-sm'
+                                    : 'bg-white text-gray-700 hover:bg-gray-50 border border-transparent'}
                                 `}
                                 style={{
-                                  boxShadow: selected ? "0 8px 30px rgba(220,38,38,0.07)" : undefined,
+                                  boxShadow: selected ? '0 8px 30px rgba(220,38,38,0.07)' : undefined,
                                 }}
                               >
                                 <span className="block break-words">{b.label}</span>
@@ -425,7 +478,7 @@ export default function HomePage() {
                             setCalendarOpen((p) => !p)
                           }}
                           onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
+                            if (e.key === 'Enter' || e.key === ' ') {
                               e.preventDefault()
                               setCalendarOpen((p) => !p)
                             }
@@ -481,7 +534,7 @@ export default function HomePage() {
                                   ‹
                                 </button>
                               </div>
-                              <div className="drp-title text-sm font-medium text-gray-800">{calendarMonth.toLocaleString("ru-RU", { month: "long", year: "numeric" })}</div>
+                              <div className="drp-title text-sm font-medium text-gray-800">{calendarMonth.toLocaleString('ru-RU', { month: 'long', year: 'numeric' })}</div>
                               <div className="drp-nav flex items-center gap-2">
                                 <button
                                   type="button"
@@ -509,12 +562,12 @@ export default function HomePage() {
                                     const inRange = dayInRange(d)
                                     const isToday = isSameDay(d, new Date())
                                     const classes = [
-                                      "drp-cell",
-                                      !isCurrentMonth ? "drp-cell--muted" : "",
-                                      isToday ? "drp-cell--today" : "",
-                                      (isStart || isEnd) ? "drp-cell--selected" : "",
-                                      inRange && !(isStart || isEnd) ? "drp-cell--inrange" : "",
-                                    ].filter(Boolean).join(" ")
+                                      'drp-cell',
+                                      !isCurrentMonth ? 'drp-cell--muted' : '',
+                                      isToday ? 'drp-cell--today' : '',
+                                      (isStart || isEnd) ? 'drp-cell--selected' : '',
+                                      inRange && !(isStart || isEnd) ? 'drp-cell--inrange' : '',
+                                    ].filter(Boolean).join(' ')
                                     return (
                                       <div
                                         key={`m0-${wi}-${di}`}
@@ -522,7 +575,7 @@ export default function HomePage() {
                                         onMouseDown={(e) => e.preventDefault()}
                                         onPointerDown={(e) => e.preventDefault()}
                                         onClick={() => handleDayClick(d)}
-                                        title={d.toLocaleDateString("ru-RU")}
+                                        title={d.toLocaleDateString('ru-RU')}
                                         tabIndex={-1}
                                         onFocus={(e) => { (e.currentTarget as HTMLElement).blur() }}
                                         role="button"
@@ -541,12 +594,12 @@ export default function HomePage() {
                                 type="button"
                                 onMouseDown={(e) => e.preventDefault()}
                                 className="drp-clear text-sm text-gray-600"
-                                onClick={() => { handleInputChange("checkin", ""); handleInputChange("checkout", ""); setSelecting("start") }}
+                                onClick={() => { handleInputChange('checkin', ''); handleInputChange('checkout', ''); setSelecting('start') }}
                               >
                                 Очистить
                               </button>
                               <div className="flex items-center gap-3">
-                                <div className="text-sm text-gray-600">{formData.checkin ? new Date(formData.checkin).toLocaleDateString("ru-RU") : "—"} — {formData.checkout ? new Date(formData.checkout).toLocaleDateString("ru-RU") : "—"}</div>
+                                <div className="text-sm text-gray-600">{formData.checkin ? new Date(formData.checkin).toLocaleDateString('ru-RU') : '—'} — {formData.checkout ? new Date(formData.checkout).toLocaleDateString('ru-RU') : '—'}</div>
                                 <button
                                   type="button"
                                   onMouseDown={(e) => e.preventDefault()}
@@ -566,23 +619,23 @@ export default function HomePage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                     <div>
                       <Label htmlFor="people" className="text-base sm:text-lg font-semibold text-gray-800 mb-2 block">Количество человек *</Label>
-                      <Input id="people" type="number" placeholder="Например: 15" required value={formData.people} onChange={(e) => handleInputChange("people", e.target.value)} disabled={isSubmitting} className="h-12 sm:h-14 text-base sm:text-lg border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 placeholder:text-gray-400 bg-white/80 backdrop-blur-sm w-full" />
+                      <Input id="people" type="number" placeholder="Например: 15" required value={formData.people} onChange={(e) => handleInputChange('people', e.target.value)} disabled={isSubmitting} className="h-12 sm:h-14 text-base sm:text-lg border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 placeholder:text-gray-400 bg-white/80 backdrop-blur-sm w-full" />
                     </div>
                     <div>
                       <Label htmlFor="sport" className="text-base sm:text-lg font-semibold text-gray-800 mb-2 block">Вид спорта *</Label>
-                      <Input id="sport" placeholder="Например: Футбол" required value={formData.sport} onChange={(e) => handleInputChange("sport", e.target.value)} disabled={isSubmitting} className="h-12 sm:h-14 text-base sm:text-lg border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 placeholder:text-gray-400 bg-white/80 backdrop-blur-sm w-full" />
+                      <Input id="sport" placeholder="Например: Футбол" required value={formData.sport} onChange={(e) => handleInputChange('sport', e.target.value)} disabled={isSubmitting} className="h-12 sm:h-14 text-base sm:text-lg border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 placeholder:text-gray-400 bg-white/80 backdrop-blur-sm w-full" />
                     </div>
                   </div>
 
                   <div>
                     <Label htmlFor="additional" className="text-base sm:text-lg font-semibold text-gray-800 mb-2 block">Дополнительные пожелания</Label>
-                    <Textarea id="additional" placeholder="Укажите особые требования или пожелания к проведению сборов..." value={formData.additional} onChange={(e) => handleInputChange("additional", e.target.value)} disabled={isSubmitting} className="min-h-[100px] sm:min-h-[120px] text-base sm:text-lg border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 placeholder:text-gray-400 bg-white/80 backdrop-blur-sm resize-none w-full" />
+                    <Textarea id="additional" placeholder="Укажите особые требования или пожелания к проведению сборов..." value={formData.additional} onChange={(e) => handleInputChange('additional', e.target.value)} disabled={isSubmitting} className="min-h-[100px] sm:min-h-[120px] text-base sm:text-lg border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 placeholder:text-gray-400 bg-white/80 backdrop-blur-sm resize-none w-full" />
                   </div>
 
                   {submitError && <div className="text-red-600 text-base sm:text-lg bg-red-50 p-4 sm:p-6 rounded-xl border-2 border-red-200">{submitError}</div>}
 
                   <div className="flex justify-center">
-                    <Button type="submit" className={`hero-glow-button ${isSubmitting ? "opacity-90 cursor-wait" : ""}`} disabled={isSubmitting} data-aos="zoom-in">
+                    <Button type="submit" className={`hero-glow-button ${isSubmitting ? 'opacity-90 cursor-wait' : ''}`} disabled={isSubmitting} data-aos="zoom-in">
                       {isSubmitting ? (
                         <div className="relative z-10 flex items-center justify-center gap-3 w-full">
                           <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -608,14 +661,14 @@ export default function HomePage() {
           <h2 className="font-serif text-2xl sm:text-5xl font-bold text-center mb-8 sm:mb-16" data-aos="slide-up">Часто задаваемые вопросы</h2>
           <div className="max-w-3xl mx-auto space-y-3 sm:space-y-4" data-aos="fade-up">
             {[
-              { question: "Какова минимальная продолжительность аренды базы?", answer: "Минимальная продолжительность аренды составляет 3 дня. Это позволяет командам полноценно провести тренировочный процесс и адаптироваться к условиям базы." },
-              { question: "Включено ли питание в стоимость аренды?", answer: "Да, все наши базы работают по системе 'всё включено'. В стоимость входит трёхразовое питание, проживание и использование всей спортивной инфраструктуры." },
-              { question: "Можно ли привезти собственного повара?", answer: "Конечно! Мы предоставляем полностью оборудованную кухню, где ваш повар сможет готовить. При этом стоимость аренды будет пересчитана без учёта питания." },
+              { question: 'Какова минимальная продолжительность аренды базы?', answer: 'Минимальная продолжительность аренды составляет 3 дня. Это позволяет командам полноценно провести тренировочный процесс и адаптироваться к условиям базы.' },
+              { question: 'Включено ли питание в стоимость аренды?', answer: 'Да, все наши базы работают по системе "всё включено". В стоимость входит трёхразовое питание, проживание и использование всей спортивной инфраструктуры.' },
+              { question: 'Можно ли привезти собственного повара?', answer: 'Конечно! Мы предоставляем полностью оборудованную кухню, где ваш повар сможет готовить. При этом стоимость аренды будет пересчитана без учёта питания.' },
             ].map((faq, index) => (
               <Collapsible key={index} open={openFaq === index} onOpenChange={() => toggleFaq(index)}>
                 <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg border p-4 sm:p-6 text-left hover:bg-muted/50 transition-colors">
                   <span className="font-semibold text-base sm:text-lg">{faq.question}</span>
-                  <ChevronDown className={`h-5 w-5 transition-transform ${openFaq === index ? "rotate-180" : ""}`} />
+                  <ChevronDown className={`h-5 w-5 transition-transform ${openFaq === index ? 'rotate-180' : ''}`} />
                 </CollapsibleTrigger>
                 <CollapsibleContent className="px-4 sm:px-6 pb-4 sm:pb-6 pt-2 text-muted-foreground text-sm sm:text-base leading-relaxed">{faq.answer}</CollapsibleContent>
               </Collapsible>
@@ -648,9 +701,10 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="border-t border-gray-800 mt-8 sm:mt-12 pt-6 text-center text-gray-400"><p className="text-sm sm:text-lg">&copy; 2024 Team Rive. Все права защищены.</p></div>
+          <div className="border-t border-gray-800 mt-8 sm:mt-12 pt-6 text-center text-gray-400"><p className="text-sm sm:text-lg">© 2024 Team Rive. Все права защищены.</p></div>
         </div>
       </footer>
+
       {/* Important global styles (preserved) */}
       <style jsx global>{`
         html, body {
@@ -689,7 +743,7 @@ export default function HomePage() {
         }
 
         @media (max-width: 640px) {
-          .max-w-\\[680px\\] { max-width: 92vw; padding-left: 6px; padding-right: 6px; }
+          .max-w-\[680px\] { max-width: 92vw; padding-left: 6px; padding-right: 6px; }
           .drp-popup { width: calc(100vw - 24px); left: 12px; right: 12px; bottom: 6vh; position: fixed; border-radius: 12px; max-height: calc(70vh); overflow: auto; -webkit-overflow-scrolling: touch; z-index: 9999; }
           .drp-cell { height: 44px; font-size: 14px; }
           .drp-actions { align-items: center; gap: 6px }
