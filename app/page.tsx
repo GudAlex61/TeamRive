@@ -94,18 +94,10 @@ export default function HomePage() {
     if (params.get('scrollTo') === 'booking') {
       const el = document.getElementById('booking-form')
       if (el) {
-        // даём время на монтирование изображений/компоненто
+        // даём время на монтирование изображений/компонентов
         setTimeout(() => {
-          try {
-            // фокусируем для доступности (без скролла) и прокручиваем
-            (el as HTMLElement).tabIndex = -1,
-            (el as HTMLElement).focus({ preventScroll: true });
-            (el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'start' })
-          } catch (e) {
-            const y = window.pageYOffset + el.getBoundingClientRect().top
-            window.scrollTo(0, y)
-          }
-        }, 70)
+          scrollToElementSafely(el)
+        }, 100)
       }
       // удаляем параметр, чтобы не повторять при повторном рендере
       params.delete('scrollTo')
@@ -118,40 +110,108 @@ export default function HomePage() {
   const toggleFaq = (index: number) => setOpenFaq(openFaq === index ? null : index)
   const navigateToBase = (baseName: string) => router.push(`/${baseName}`)
 
+  // Улучшенная функция скролла с множественными fallback-ами
+  const scrollToElementSafely = (element: HTMLElement) => {
+    if (!element) return;
+
+    // Сначала пытаемся убрать фокус с активного элемента
+    const activeElement = document.activeElement as HTMLElement;
+    if (activeElement && activeElement.blur) {
+      activeElement.blur();
+    }
+
+    // Получаем позицию элемента относительно viewport
+    const rect = element.getBoundingClientRect();
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const targetY = rect.top + scrollTop - 80; // отступ 80px сверху
+
+    // Метод 1: requestAnimationFrame для плавной анимации (самый надежный)
+    const smoothScrollTo = (targetY: number, duration: number = 800) => {
+      const startY = window.pageYOffset;
+      const distance = targetY - startY;
+      const startTime = performance.now();
+
+      const easeInOutQuart = (t: number): number => {
+        return t < 0.5 ? 8 * t * t * t * t : 1 - Math.pow(-2 * t + 2, 4) / 2;
+      };
+
+      const animateScroll = (currentTime: number) => {
+        const timeElapsed = currentTime - startTime;
+        const progress = Math.min(timeElapsed / duration, 1);
+        const ease = easeInOutQuart(progress);
+        
+        window.scrollTo(0, startY + distance * ease);
+        
+        if (progress < 1) {
+          requestAnimationFrame(animateScroll);
+        } else {
+          // После завершения анимации устанавливаем фокус
+          setTimeout(() => {
+            try {
+              element.tabIndex = -1;
+              element.focus({ preventScroll: true });
+            } catch (e) { /* ignore */ }
+          }, 100);
+        }
+      };
+
+      requestAnimationFrame(animateScroll);
+    };
+
+    // Пытаемся использовать нативный scrollIntoView
+    try {
+      element.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start',
+        inline: 'nearest'
+      });
+      
+      // Устанавливаем таймер для проверки, сработал ли нативный скролл
+      setTimeout(() => {
+        const newRect = element.getBoundingClientRect();
+        // Если элемент все еще не в видимой области, используем fallback
+        if (newRect.top > window.innerHeight || newRect.top < -100) {
+          smoothScrollTo(targetY);
+        }
+      }, 300);
+      
+    } catch (e) {
+      // Если нативный метод не работает, используем наш custom скролл
+      smoothScrollTo(targetY);
+    }
+
+    // Дополнительный fallback через setTimeout
+    setTimeout(() => {
+      const finalRect = element.getBoundingClientRect();
+      if (finalRect.top > window.innerHeight || finalRect.top < -100) {
+        // Последний резерв - мгновенный скролл
+        window.scrollTo(0, targetY);
+        try {
+          element.tabIndex = -1;
+          element.focus({ preventScroll: true });
+        } catch (e) { /* ignore */ }
+      }
+    }, 1000);
+  };
+
   const scrollToBooking = () => {
     if (typeof window === 'undefined') return;
     
     const el = document.getElementById('booking-form');
     if (el) {
-      // Фокусируем элемент для доступности
-      el.tabIndex = -1;
-      el.focus({ preventScroll: true });
+      scrollToElementSafely(el);
       
-      // Плавный скролл с fallback
-      try {
-        el.scrollIntoView({ 
-          behavior: 'smooth',
-          block: 'start',
-          inline: 'nearest'
-        });
-      } catch (e) {
-        // Fallback для браузеров без поддержки smooth
-        const y = el.getBoundingClientRect().top + window.pageYOffset;
-        window.scrollTo(0, y);
-      }
-  
-      // Обновляем URL
+      // Обновляем URL только после успешного скролла
       try {
         const params = new URLSearchParams(window.location.search);
         params.set('scrollTo', 'booking');
         window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
       } catch (e) { /* ignore */ }
     } else {
-      // Если элемент не найден, используем router
+      // Если элемент не найден, используем router как fallback
       router.push('/?scrollTo=booking');
     }
   };
-
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -390,7 +450,7 @@ export default function HomePage() {
       </section>
 
       {/* Booking Form */}
-      <section id="booking-form" className="py-12 sm:py-20">
+      <section id="booking-form" className="py-12 sm:py-20" style={{ scrollMarginTop: '80px' }}>
         <div className="container mx-auto px-4">
           <div className="max-w-2xl mx-auto text-center mb-8 sm:mb-12">
             <h2 className="font-serif text-2xl sm:text-5xl font-bold mb-4 sm:mb-6" data-aos="slide-up">Оставьте заявку на бронирование</h2>
@@ -769,6 +829,17 @@ export default function HomePage() {
           .hero h1 { font-size: 22px !important; }
           .hero p { font-size: 14px !important; }
           .hero-glow-button { padding: 10px 16px; border-radius: 12px; font-size: 14px; }
+        }
+
+        /* Дополнительные стили для улучшенного скролла */
+        #booking-form {
+          scroll-margin-top: 80px;
+        }
+        
+        @media (max-width: 768px) {
+          #booking-form {
+            scroll-margin-top: 60px;
+          }
         }
       `}</style>
     </div>
