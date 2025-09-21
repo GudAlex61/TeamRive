@@ -119,30 +119,39 @@ export default function HomePage() {
   const navigateToBase = (baseName: string) => router.push(`/${baseName}`)
 
   const scrollToBooking = () => {
-    if (typeof window === 'undefined') return
-    const el = document.getElementById('booking-form')
+    if (typeof window === 'undefined') return;
+    
+    const el = document.getElementById('booking-form');
     if (el) {
+      // Фокусируем элемент для доступности
+      el.tabIndex = -1;
+      el.focus({ preventScroll: true });
+      
+      // Плавный скролл с fallback
       try {
-        // Фокусируем для доступности (с preventScroll) и прокручиваем плавно
-        (el as HTMLElement).tabIndex = -1,
-        (el as HTMLElement).focus({ preventScroll: true })
-        ;(el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'start' })
+        el.scrollIntoView({ 
+          behavior: 'smooth',
+          block: 'start',
+          inline: 'nearest'
+        });
       } catch (e) {
-        // fallback
-        const y = window.pageYOffset + el.getBoundingClientRect().top
-        window.scrollTo(0, y)
+        // Fallback для браузеров без поддержки smooth
+        const y = el.getBoundingClientRect().top + window.pageYOffset;
+        window.scrollTo(0, y);
       }
-      // Обновляем URL без навигации, чтобы при шаринге открывалась форма
+  
+      // Обновляем URL
       try {
-        const params = new URLSearchParams(window.location.search)
-        params.set('scrollTo', 'booking')
-        window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`)
+        const params = new URLSearchParams(window.location.search);
+        params.set('scrollTo', 'booking');
+        window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
       } catch (e) { /* ignore */ }
-      return
+    } else {
+      // Если элемент не найден, используем router
+      router.push('/?scrollTo=booking');
     }
-    // если элемент ещё не в DOM (редкий кейс), делаем router.push — BookingScroller обработает scrollTo
-    router.push('/?scrollTo=booking')
-  }
+  };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
