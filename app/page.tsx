@@ -43,6 +43,40 @@ export default function HomePage() {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const router = useRouter()
 
+  const formatPhoneNumber = (value: string): string => {
+    // Удаляем все нецифровые символы
+    const numbers = value.replace(/\D/g, '');
+    
+    // Ограничиваем длину (11 цифр для российского номера)
+    let formattedValue = numbers.substring(0, 11);
+    
+    // Форматируем по шаблону +7 (XXX) XXX-XX-XX
+    if (formattedValue.length > 0) {
+      formattedValue = '+7' + formattedValue.substring(1);
+    }
+    
+    if (formattedValue.length > 1) {
+      formattedValue = formattedValue.substring(0, 2) + ' (' + formattedValue.substring(2);
+    }
+    if (formattedValue.length > 7) {
+      formattedValue = formattedValue.substring(0, 7) + ') ' + formattedValue.substring(7);
+    }
+    if (formattedValue.length > 12) {
+      formattedValue = formattedValue.substring(0, 12) + '-' + formattedValue.substring(12);
+    }
+    if (formattedValue.length > 15) {
+      formattedValue = formattedValue.substring(0, 15) + '-' + formattedValue.substring(15);
+    }
+    
+    return formattedValue;
+  };
+  
+  // Обновите обработчик для телефона
+  const handlePhoneChange = (value: string) => {
+    const formattedPhone = formatPhoneNumber(value);
+    handleInputChange("phone", formattedPhone);
+  };
+
   // calendar refs
   const rangeControlRef = useRef<HTMLDivElement | null>(null)
   const popupRef = useRef<HTMLDivElement | null>(null)
@@ -510,7 +544,16 @@ export default function HomePage() {
                     </div>
                     <div>
                       <Label htmlFor="phone" className="text-base sm:text-lg font-semibold text-gray-800 mb-2 block">Номер телефона *</Label>
-                      <Input id="phone" type="tel" placeholder="+7 (999) 123-45-67" required value={formData.phone} onChange={(e) => handleInputChange("phone", e.target.value)} disabled={isSubmitting} className="h-12 sm:h-14 text-base sm:text-lg border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 placeholder:text-gray-400 bg-white/80 backdrop-blur-sm w-full" />
+                      <Input 
+                        id="phone" 
+                        type="tel" 
+                        placeholder="+7 (999) 123-45-67" 
+                        required 
+                        value={formData.phone}
+                        onChange={(e) => handlePhoneChange(e.target.value)}
+                        disabled={isSubmitting}
+                        className="h-12 sm:h-14 text-base sm:text-lg border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 placeholder:text-gray-400 bg-white/80 backdrop-blur-sm w-full" 
+                      />
                     </div>
                   </div>
 
