@@ -227,10 +227,24 @@ export default function TuapsePage() {
               <h2 className="text-3xl font-serif font-bold mb-6 bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">О базе — Туапсе</h2>
               <div className="prose prose-gray max-w-none space-y-6">
                 <p className="text-muted-foreground text-lg leading-relaxed transition-colors duration-300">
-                  В пакет (от 2100₽) входит проживание в отеле «Ревю», трёхразовое питание и курортный сбор. Отель расположен примерно в 50 метрах от моря, что делает базу идеальной для восстановления между тренировками.
+                  В пакет (от 2100₽) входит проживание в <a 
+      href="https://xn--b1afaxnol6fva.xn--p1ai/" 
+      target="_blank" 
+      rel="noopener noreferrer"
+      className="text-current no-underline text-primary transition-colors duration-200 cursor-pointer"
+    >
+      отеле «Ревю»
+    </a>, трёхразовое питание и курортный сбор. Отель расположен примерно в 50 метрах от моря, что делает базу идеальной для восстановления между тренировками.
                 </p>
                 <p className="text-muted-foreground text-lg leading-relaxed transition-colors duration-300">
-                  На территории отеля — бассейны, детские площадки и спортивные площадки. Турнирные матчи и тренировки проходят на территории СОЛ «Буревестник».
+                  На территории отеля — бассейны, детские площадки и спортивные площадки. Турнирные матчи и тренировки проходят на территории <a 
+      href="https://study.gstou.ru/agoy" 
+      target="_blank" 
+      rel="noopener noreferrer"
+      className="text-current no-underline text-primary transition-colors duration-200 cursor-pointer"
+    >
+      СОЛ «Буревестник»
+    </a>.
                 </p>
                 <p className="text-muted-foreground text-lg leading-relaxed transition-colors duration-300">
                   Организуем трансфер, питание, медицинское сопровождение и полный спектр услуг для комфортного проведения тренировочных сборов.

@@ -223,10 +223,39 @@ export default function VolgogradPage() {
               <h2 className="text-3xl font-serif font-bold mb-6 bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">О базе — Волгоград</h2>
               <div className="prose prose-gray max-w-none space-y-6">
                 <p className="text-muted-foreground text-lg leading-relaxed transition-colors duration-300">
-                  В пакет (от 2150₽) входит проживание в гостиницах «НОЙ» или «Волга-Волга», трёхразовое питание и курортный сбор. Для команд доступны комфортные номера и полный спектр сервисов.
+                  В пакет (от 2150₽) входит проживание в гостиницах <a 
+      href="https://noy-volgograd.ru/"
+      target="_blank" 
+      rel="noopener noreferrer"
+      className="text-current no-underline text-primary transition-colors duration-200 cursor-pointer"
+    >
+      «НОЙ»
+    </a> или <a 
+      href="https://volga-volga.bookonline24.ru/?fromDate=&toDate=&adultsCount=2" 
+      target="_blank" 
+      rel="noopener noreferrer"
+      className="text-current no-underline text-primary transition-colors duration-200 cursor-pointer"
+    >
+      «Волга-Волга»
+    </a>, трёхразовое питание и курортный сбор. Для команд доступны комфортные номера и полный спектр сервисов.
                 </p>
                 <p className="text-muted-foreground text-lg leading-relaxed transition-colors duration-300">
-                  Для участников предусмотрено посещение музея «Сталинградская битва» и Мемориала Мамаев Курган. Турниры и сборы проходят на стадионе «Волгоград-Арена» и в манежах.
+                  Для участников предусмотрено посещение музея «Сталинградская битва» и Мемориала Мамаев Курган. Турниры и сборы проходят на стадионах 
+    <a 
+      href="https://volgogradarena.com/" 
+      target="_blank" 
+      rel="noopener noreferrer"
+      className="text-current no-underline text-primary transition-colors duration-200 cursor-pointer"
+    >
+      «Волгоград-Арена»
+    </a>, «Зенит» и в <a 
+      href="https://yandex.ru/maps/org/futbolny_manezh_imeni_mastera_sporta_sssr_a_b_nikitina/61635693760/gallery/?ll=44.820429%2C48.826710&z=10.71" 
+      target="_blank" 
+      rel="noopener noreferrer"
+      className="text-current no-underline text-primary transition-colors duration-200 cursor-pointer"
+    >
+      манеже А.Нкитина
+    </a>.
                 </p>
                 <p className="text-muted-foreground text-lg leading-relaxed transition-colors duration-300">
                   Организуем трансфер, питание, медицинское сопровождение и тренировочные сессии под ключ.

@@ -221,13 +221,28 @@ export default function AnapaPage() {
             <div className="lg:col-span-2" data-aos="fade-right" data-aos-delay="200">
               <h2 className="text-3xl font-serif font-bold mb-6 bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">О базе — Анапа</h2>
               <div className="prose prose-gray max-w-none space-y-6">
-                <p className="text-muted-foreground text-lg leading-relaxed transition-colors duration-300">
-                  Гостиница «Золотое Руно» — идеальное место для тренировочных сборов в Анапе. В пакет (от 2200₽/чел) входит проживание в номерах на 2—3 человека, трёхразовое питание по системе «шведская линия», а также курортный сбор.
-                </p>
-                <p className="text-muted-foreground text-lg leading-relaxed transition-colors duration-300">
-                  На территории — бассейн с подогревом и собственный пляж для восстановления после тренировок. Гостиница расположена примерно в 100 метрах от моря, а турнирные матчи и тренировки проходят в 100 метрах от отеля на базе ЛОК «Витязь».
-                </p>
-              </div>
+  <p className="text-muted-foreground text-lg leading-relaxed transition-colors duration-300">
+    <a 
+      href="https://zolotoerunohotel.ru/" 
+      target="_blank" 
+      rel="noopener noreferrer"
+      className="text-current no-underline text-primary transition-colors duration-200 cursor-pointer"
+    >
+      Гостиница «Золотое Руно»
+    </a> — идеальное место для тренировочных сборов в Анапе. В пакет (от 2200₽/чел) входит проживание в номерах на 2—3 человека, трёхразовое питание по системе «шведская линия», а также курортный сбор.
+  </p>
+  <p className="text-muted-foreground text-lg leading-relaxed transition-colors duration-300">
+    На территории — бассейн с подогревом и собственный пляж для восстановления после тренировок. Гостиница расположена примерно в 100 метрах от моря, а турнирные матчи и тренировки проходят в 100 метрах от отеля на базе{' '}
+    <a 
+      href="https://lokvityaz.ru/" 
+      target="_blank" 
+      rel="noopener noreferrer"
+      className="text-current no-underline text-primary transition-colors duration-200 cursor-pointer"
+    >
+      ЛОК «Витязь»
+    </a>.
+  </p>
+</div>
             </div>
 
             <div data-aos="fade-left" data-aos-delay="400">

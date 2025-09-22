@@ -113,40 +113,73 @@ export default function HomePage() {
   }, [])
 
   useEffect(() => {
-    if (typeof window === "undefined") return
-    try {
-      const params = new URLSearchParams(window.location.search)
-      if (params.get("scrollTo") === "booking") {
-        // keep a small fallback in case BookingScroller hasn't fired yet
-        const timer = window.setTimeout(() => {
-          const bookingSection = document.getElementById("booking-form")
-          if (bookingSection) {
-            try {
-              bookingSection.scrollIntoView({ behavior: "smooth", block: "start" })
-            } catch {
-              bookingSection.scrollIntoView(true)
-            }
-            try {
-              history.replaceState(null, "", window.location.pathname + window.location.hash)
-            } catch {}
+    if (typeof window === "undefined") return;
+    
+    const handleScrollToBooking = () => {
+      const bookingSection = document.getElementById("booking-form");
+      if (bookingSection) {
+        // Небольшая задержка для гарантии, что DOM полностью загружен
+        setTimeout(() => {
+          try {
+            bookingSection.scrollIntoView({ 
+              behavior: "smooth", 
+              block: "start" 
+            });
+          } catch {
+            bookingSection.scrollIntoView(true);
           }
-        }, 600)
-        return () => clearTimeout(timer)
+          
+          // Очищаем URL после скролла
+          try {
+            history.replaceState(null, "", window.location.pathname);
+          } catch {}
+        }, 100);
       }
-    } catch {}
-  }, [])
+    };
+  
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("scrollTo") === "booking") {
+        handleScrollToBooking();
+      }
+      
+      // Также обрабатываем хеш в URL
+      if (window.location.hash === "#booking-form") {
+        handleScrollToBooking();
+      }
+    } catch (error) {
+      console.error("Error handling scroll:", error);
+    }
+  }, []);
 
   const toggleFaq = (index: number) => setOpenFaq(openFaq === index ? null : index)
   const navigateToBase = (baseName: string) => router.push(`/${baseName}`)
   const scrollToBooking = () => {
-    // prefer router push with query — BookingScroller (dynamic) will handle the actual scroll
-    try {
-      router.push("/?scrollTo=booking")
-    } catch {
-      // fallback: direct hash navigation
-      try { window.location.href = "/#booking-form" } catch {}
+    // Прямой скролл к секции бронирования
+    const bookingSection = document.getElementById("booking-form");
+    if (bookingSection) {
+      // Плавный скролл с поведением как при переходе по ссылке
+      bookingSection.scrollIntoView({ 
+        behavior: "smooth", 
+        block: "start",
+        inline: "nearest"
+      });
+      
+      // Обновляем URL без перезагрузки страницы
+      try {
+        window.history.replaceState(null, "", "/#booking-form");
+      } catch (e) {
+        console.error("Error updating URL:", e);
+      }
+    } else {
+      // Fallback: если секция не найдена (например, на другой странице)
+      try {
+        router.push("/#booking-form");
+      } catch {
+        window.location.href = "/#booking-form";
+      }
     }
-  }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -285,7 +318,7 @@ export default function HomePage() {
   }, [])
 
   return (
-    <div className="root-wrapper bg-background overflow-x-hidden">
+    <div className="root-wrapper bg-background overflow-x-hidden overflow-y-hidden">
       {/* BookingScroller handles ?scrollTo=booking on client only */}
       <BookingScroller />
 
@@ -842,20 +875,30 @@ export default function HomePage() {
         /* prevent horizontal overflow site-wide */
         /* CHANGED: make html the vertical scroll owner, avoid setting vertical overflow on body.
            This prevents two scrollbars showing (html + body or nested scroll container). */
-        html, body, #__next {
-          height: 100%;
-          margin: 0;
-          padding: 0;
-        }
-        html {
-          overflow-y: auto; /* root handles vertical scroll */
-          -webkit-overflow-scrolling: touch;
-          overflow-x: hidden;
-        }
-        body {
-          overflow-y: visible; /* do not create another scrollbar on body */
-          overflow-x: hidden;
-        }
+
+            html {
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+          }
+          body {
+            overflow-y: visible;
+            overflow-x: hidden;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+          }
+          #__next {
+            min-height: 100vh;
+          }
+
+          /* page.module.css или <style jsx> на проблемной странице */
+.rootWrapperFix {
+  overflow-y: visible !important; /* убираем маленькую внутреннюю полосу */
+  min-height: auto !important;    /* позволяет контенту растягивать контейнер без лишнего скролла */
+}
+
+
 
         /* root wrapper should not force its own scroll context */
         .root-wrapper {
