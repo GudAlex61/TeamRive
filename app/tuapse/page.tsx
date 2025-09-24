@@ -1,6 +1,8 @@
+// app/tuapse/page.tsx
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -8,17 +10,74 @@ import { ChevronLeft, ChevronRight, MapPin, Users, Dumbbell, Waves, Car, Utensil
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
+function ImageModalInner({ src, alt, keyProp }: { src: string; alt: string; keyProp: string }) {
+  const [modalSize, setModalSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 })
+
+  useEffect(() => {
+    function calc() {
+      const ww = typeof window !== "undefined" ? window.innerWidth : 1200
+      const wh = typeof window !== "undefined" ? window.innerHeight : 800
+      // займём максимум 90% ширины и 80% высоты, но не более 1200px по ширине
+      const maxW = Math.min(1200, Math.floor(ww * 0.9))
+      const maxH = Math.floor(wh * 0.8)
+      // здесь ставим square area, но Image использует objectFit: contain, так что соотношение не критично
+      const sizeW = maxW
+      const sizeH = maxH
+      setModalSize({ w: sizeW, h: sizeH })
+    }
+    calc()
+    window.addEventListener("resize", calc)
+    return () => window.removeEventListener("resize", calc)
+  }, [])
+
+  // wrapper имеет relative и явные размеры — это важно для Image fill
+  return (
+    <div
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        zIndex: 1003,
+        maxWidth: modalSize.w,
+        width: modalSize.w,
+        maxHeight: modalSize.h,
+        height: modalSize.h,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 8,
+        position: "relative"
+      }}
+    >
+      {/* ключ тут — чтобы при смене src следующий <img> заново создавался */}
+      <div style={{ position: "relative", width: "100%", height: "100%", borderRadius: 8, overflow: "hidden" }}>
+        <Image
+          key={keyProp}
+          src={src}
+          alt={alt}
+          fill
+          style={{
+            objectFit: "contain",
+            touchAction: "manipulation",
+            WebkitUserSelect: "none",
+            userSelect: "none",
+          }}
+          sizes="(max-width: 768px) 100vw, 80vw"
+          priority
+        />
+      </div>
+    </div>
+  )
+}
+
+
 export default function TuapsePage() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [modalOpen, setModalOpen] = useState(false)
   const router = useRouter()
 
-  // touch/swipe refs and previous body overflow storage
   const touchStartX = useRef<number | null>(null)
   const touchStartY = useRef<number | null>(null)
   const prevBodyOverflow = useRef<string | null>(null)
 
-  // AOS-like observer to animate elements when they enter viewport
   useEffect(() => {
     if (typeof window === "undefined") return
     const timeouts: number[] = []
@@ -51,14 +110,13 @@ export default function TuapsePage() {
 
   useEffect(() => { if (typeof window !== "undefined") window.scrollTo(0, 0) }, [])
 
-  // Replace with your real images when ready
   const images = [
-    "/tuapse/hotel.png?height=600&width=800",
-    "/tuapse/revuhotelslide1.jpg?height=600&width=800",
-    "/tuapse/outside.png?height=600&width=800",
-    "/tuapse/room.png?height=600&width=800",
-    "/tuapse/room2.png?height=600&width=800",
-    "/tuapse/toilet.jpg?height=600&width=800",
+    "/tuapse/hotel.png",
+    "/tuapse/revuhotelslide1.jpg",
+    "/tuapse/outside.png",
+    "/tuapse/room.png",
+    "/tuapse/room2.png",
+    "/tuapse/toilet.jpg",
     "/tuapse/bur1.jpg",
     "/tuapse/bur2.jpg",
     "/tuapse/bur3.jpg",
@@ -70,11 +128,9 @@ export default function TuapsePage() {
 
   const openModalAt = (idx: number) => {
     setCurrentImageIndex(idx)
-    // lock body scroll (remember previous value)
     if (typeof document !== "undefined") {
       prevBodyOverflow.current = document.body.style.overflow
       document.body.style.overflow = "hidden"
-      // on iOS it's sometimes useful to lock height as well, but that can cause layout shifts — keep it simple
     }
     setModalOpen(true)
   }
@@ -97,7 +153,7 @@ export default function TuapsePage() {
     return () => window.removeEventListener("keydown", onKey)
   }, [modalOpen, nextImage, prevImage])
 
-  // Touch handlers for swipe support
+  // Touch handlers for swipe
   const onTouchStart = (e: React.TouchEvent) => {
     if (!e.touches || e.touches.length === 0) return
     touchStartX.current = e.touches[0].clientX
@@ -120,7 +176,7 @@ export default function TuapsePage() {
     touchStartY.current = null
   }
 
-  // Click on left/right side of image to navigate
+  // click half-area (desktop mouse clicks also handled)
   const onModalAreaClick = (e: React.MouseEvent) => {
     const x = e.clientX
     const vw = typeof window !== "undefined" ? window.innerWidth : 0
@@ -134,7 +190,6 @@ export default function TuapsePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="border-b" data-aos="fade" data-aos-onload>
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -143,7 +198,6 @@ export default function TuapsePage() {
         </div>
       </header>
 
-      {/* Hero */}
       <section className="py-8">
         <div className="container mx-auto px-4">
           <div className="flex items-center gap-2 mb-4" data-aos="slide-up" data-aos-delay="100">
@@ -170,20 +224,20 @@ export default function TuapsePage() {
         </div>
       </section>
 
-      {/* Image Gallery */}
       <section className="py-8">
         <div className="container mx-auto px-4">
           <div className="relative max-w-4xl mx-auto" data-aos="zoom-in" data-aos-delay="400">
             <div className="relative h-96 md:h-[520px] rounded-lg overflow-hidden shadow-2xl hover:shadow-3xl transition-shadow duration-500 bg-white flex items-center justify-center">
-              <img
+              <Image
                 src={images[currentImageIndex] || "/placeholder.svg"}
                 alt={`Туапсе - фото ${currentImageIndex + 1}`}
+                width={1200}
+                height={720}
                 className="max-w-full max-h-full object-contain transition-all duration-500 cursor-zoom-in"
                 onClick={() => openModalAt(currentImageIndex)}
-                draggable={false}
+                draggable={false as any}
               />
 
-              {/* Desktop arrows */}
               <button
                 onClick={prevImage}
                 className="hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full transition-all duration-300 hover:scale-110 backdrop-blur-sm"
@@ -211,7 +265,7 @@ export default function TuapsePage() {
                   onClick={() => setCurrentImageIndex(idx)}
                   className={`flex-shrink-0 w-20 h-16 rounded-md overflow-hidden border-2 transition-all duration-300 ${idx === currentImageIndex ? "border-primary shadow-lg" : "border-transparent"}`}
                 >
-                  <img src={img} alt={`thumb ${idx + 1}`} className="w-full h-full object-cover" draggable={false} />
+                  <Image src={img} alt={`thumb ${idx + 1}`} width={80} height={64} className="w-full h-full object-cover" draggable={false as any} />
                 </button>
               ))}
             </div>
@@ -219,7 +273,6 @@ export default function TuapsePage() {
         </div>
       </section>
 
-      {/* Description & Quick Info */}
       <section className="py-12">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -293,7 +346,6 @@ export default function TuapsePage() {
         </div>
       </section>
 
-      {/* Facilities */}
       <section className="py-12 bg-gradient-to-b from-muted/30 to-background">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-serif font-bold mb-8 text-center bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent" data-aos="slide-up">
@@ -356,7 +408,6 @@ export default function TuapsePage() {
         </div>
       </section>
 
-      {/* CTA */}
       <section className="py-16">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-4xl font-serif font-bold mb-6 bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent" data-aos="slide-up">
@@ -376,7 +427,6 @@ export default function TuapsePage() {
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="bg-black text-white py-8" data-aos="fade-up">
         <div className="container mx-auto px-4 text-center">
           <Link href="/" className="text-2xl font-bold text-primary mb-4 inline-block transition-transform duration-300">Team Rive</Link>
@@ -384,126 +434,98 @@ export default function TuapsePage() {
         </div>
       </footer>
 
-      {/* Fullscreen modal */}
       {modalOpen && (
         <div
           className="fixed inset-0 flex items-center justify-center"
-          // overlay: solid black semi
-          style={{ background: "rgba(0,0,0,0.92)", zIndex: 1000, touchAction: "none" }}
+          style={{ background: "rgba(0,0,0,0.92)", zIndex: 1000 }}
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
-          onMouseDown={(e) => { /* prevent background actions */ e.preventDefault() }}
+          onClick={(e) => {
+            // клики по любой точке экрана (включая поверх картинки) попадут сюда
+            const vw = typeof window !== "undefined" ? window.innerWidth : 1024
+            if (e.clientX < vw / 2) prevImage()
+            else nextImage()
+          }}
+          onKeyDown={(e: any) => {
+            if (e.key === "Escape") closeModal()
+          }}
+          tabIndex={-1} // чтобы onKeyDown могла срабатывать, если нужно — можно убрать/поправить в зависимости от окружения
         >
-          {/* Close button - explicit zIndex so it's always clickable */}
+          {/* Кнопка закрытия — pointer-events auto, чтобы перехватывать клики */}
           <button
-            onClick={closeModal}
-            aria-label="Close"
-            style={{
-              position: "absolute",
-              top: 12,
-              right: 12,
-              zIndex: 1003,
-              background: "rgba(0,0,0,0.45)",
-              color: "white",
-              border: "none",
-              padding: 10,
-              borderRadius: 999,
-            }}
+            onClick={(e) => { e.stopPropagation(); closeModal() }}
+            aria-label="Закрыть"
+            className="absolute top-4 right-4 z-50 bg-black/50 text-white px-3 py-2 rounded-full"
+            style={{ pointerEvents: "auto" }}
           >
             ✕
           </button>
 
-          {/* Desktop arrows */}
+          {/* Стрелки только на десктопе — тоже интерактивны */}
           <button
-            onClick={prevImage}
-            aria-label="Prev"
-            style={{
-              display: window.innerWidth >= 768 ? "flex" : "none",
-              position: "absolute",
-              left: 24,
-              top: "50%",
-              transform: "translateY(-50%)",
-              zIndex: 1002,
-              background: "rgba(0,0,0,0.28)",
-              color: "white",
-              border: "none",
-              padding: 12,
-              borderRadius: 8,
-            }}
-          >‹</button>
-
+            onClick={(e) => { e.stopPropagation(); prevImage() }}
+            aria-label="Предыдущее"
+            className="hidden md:flex absolute left-6 top-1/2 -translate-y-1/2 z-50 bg-black/40 text-white p-3 rounded-full"
+            style={{ pointerEvents: "auto" }}
+          >
+            ‹
+          </button>
           <button
-            onClick={nextImage}
-            aria-label="Next"
-            style={{
-              display: window.innerWidth >= 768 ? "flex" : "none",
-              position: "absolute",
-              right: 24,
-              top: "50%",
-              transform: "translateY(-50%)",
-              zIndex: 1002,
-              background: "rgba(0,0,0,0.28)",
-              color: "white",
-              border: "none",
-              padding: 12,
-              borderRadius: 8,
-            }}
-          >›</button>
+            onClick={(e) => { e.stopPropagation(); nextImage() }}
+            aria-label="Следующее"
+            className="hidden md:flex absolute right-6 top-1/2 -translate-y-1/2 z-50 bg-black/40 text-white p-3 rounded-full"
+            style={{ pointerEvents: "auto" }}
+          >
+            ›
+          </button>
 
-          {/* Clickable halves (below the close button) */}
-          <div style={{ position: "absolute", inset: 0, zIndex: 1001, display: "flex" }} aria-hidden>
-            <div
-              style={{ flex: 1, height: "100%" }}
-              onClick={(e) => { e.stopPropagation(); prevImage() }}
-            />
-            <div
-              style={{ flex: 1, height: "100%" }}
-              onClick={(e) => { e.stopPropagation(); nextImage() }}
-            />
-          </div>
-
-          {/* Image container — centered, constrained to viewport with padding */}
+          {/* Контейнер изображения.
+              Важно: wrapper имеет pointer-events: none, чтобы клики по картинке проходили на родителя.
+              Стрелки и кнопка закрытия всё ещё выше и кликабельны (pointer-events: auto). */}
           <div
-            onClick={(e) => {
-              // prevent outer halves click from triggering when clicking the image container itself
-              e.stopPropagation()
-              // If user clicks inside image area with a mouse, allow determination by side
-              if ((e as React.MouseEvent).clientX !== undefined) onModalAreaClick(e as React.MouseEvent)
-            }}
+            aria-hidden
             style={{
               zIndex: 1002,
-              maxWidth: "calc(100vw - 32px)",
-              maxHeight: "calc(100dvh - 32px)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              padding: 8,
+              width: "100%",
+              height: "100%",
+              padding: 12,
+              pointerEvents: "none", // <-- ключевое: пропускаем все pointer события к контейнеру-модалке
             }}
           >
-            <img
-              src={images[currentImageIndex]}
-              alt={`Large ${currentImageIndex + 1}`}
-              draggable={false}
+            <div
               style={{
-                width: "auto",
-                height: "auto",
-                maxWidth: "100%",
-                maxHeight: "100%",
-                objectFit: "contain",
+                maxWidth: "90%",
+                maxHeight: "85%",
+                width: "1200px",
+                height: "80vh",
+                position: "relative",
                 borderRadius: 8,
-                touchAction: "manipulation",
-                WebkitUserSelect: "none",
-                userSelect: "none",
-                MozUserSelect: "none",
+                overflow: "hidden",
               }}
-            />
+            >
+              <Image
+                key={images[currentImageIndex]}
+                src={images[currentImageIndex]}
+                alt={`Фото ${currentImageIndex + 1}`}
+                fill
+                style={{ objectFit: "contain", pointerEvents: "none", userSelect: "none" }} // image не перехватывает события
+                sizes="(max-width: 768px) 100vw, 80vw"
+                priority
+              />
+            </div>
           </div>
 
-          <div style={{ position: "absolute", bottom: 12, left: "50%", transform: "translateX(-50%)", color: "rgba(255,255,255,0.85)", fontSize: 13, zIndex: 1003 }}>
-            Esc — выйти • Нажмите по левой/правой стороне экрана или свайпните для листания
+          {/* Подсказка */}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-sm text-white/80 text-center" style={{ zIndex: 1003 }}>
+            Esc — выйти • Нажмите влево/вправо или свайпните для перелистывания
           </div>
         </div>
       )}
+
+
     </div>
   )
 }

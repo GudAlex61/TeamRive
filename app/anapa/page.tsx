@@ -10,6 +10,65 @@ import { ChevronLeft, ChevronRight, MapPin, Users, Dumbbell, Waves, Car, Utensil
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
+function ImageModalInner({ src, alt, keyProp }: { src: string; alt: string; keyProp: string }) {
+  const [modalSize, setModalSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 })
+
+  useEffect(() => {
+    function calc() {
+      const ww = typeof window !== "undefined" ? window.innerWidth : 1200
+      const wh = typeof window !== "undefined" ? window.innerHeight : 800
+      // займём максимум 90% ширины и 80% высоты, но не более 1200px по ширине
+      const maxW = Math.min(1200, Math.floor(ww * 0.9))
+      const maxH = Math.floor(wh * 0.8)
+      // здесь ставим square area, но Image использует objectFit: contain, так что соотношение не критично
+      const sizeW = maxW
+      const sizeH = maxH
+      setModalSize({ w: sizeW, h: sizeH })
+    }
+    calc()
+    window.addEventListener("resize", calc)
+    return () => window.removeEventListener("resize", calc)
+  }, [])
+
+  // wrapper имеет relative и явные размеры — это важно для Image fill
+  return (
+    <div
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        zIndex: 1003,
+        maxWidth: modalSize.w,
+        width: modalSize.w,
+        maxHeight: modalSize.h,
+        height: modalSize.h,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 8,
+        position: "relative"
+      }}
+    >
+      {/* ключ тут — чтобы при смене src следующий <img> заново создавался */}
+      <div style={{ position: "relative", width: "100%", height: "100%", borderRadius: 8, overflow: "hidden" }}>
+        <Image
+          key={keyProp}
+          src={src}
+          alt={alt}
+          fill
+          style={{
+            objectFit: "contain",
+            touchAction: "manipulation",
+            WebkitUserSelect: "none",
+            userSelect: "none",
+          }}
+          sizes="(max-width: 768px) 100vw, 80vw"
+          priority
+        />
+      </div>
+    </div>
+  )
+}
+
+
 export default function AnapaPage() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [modalOpen, setModalOpen] = useState(false)
@@ -355,109 +414,96 @@ export default function AnapaPage() {
       {modalOpen && (
         <div
           className="fixed inset-0 flex items-center justify-center"
-          style={{ background: "rgba(0,0,0,0.92)", zIndex: 1000, touchAction: "none" }}
+          style={{ background: "rgba(0,0,0,0.92)", zIndex: 1000 }}
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
-          onMouseDown={(e) => { e.preventDefault() }}
+          onClick={(e) => {
+            // клики по любой точке экрана (включая поверх картинки) попадут сюда
+            const vw = typeof window !== "undefined" ? window.innerWidth : 1024
+            if (e.clientX < vw / 2) prevImage()
+            else nextImage()
+          }}
+          onKeyDown={(e: any) => {
+            if (e.key === "Escape") closeModal()
+          }}
+          tabIndex={-1} // чтобы onKeyDown могла срабатывать, если нужно — можно убрать/поправить в зависимости от окружения
         >
+          {/* Кнопка закрытия — pointer-events auto, чтобы перехватывать клики */}
           <button
-            onClick={closeModal}
-            aria-label="Close"
-            style={{
-              position: "absolute",
-              top: 12,
-              right: 12,
-              zIndex: 1003,
-              background: "rgba(0,0,0,0.45)",
-              color: "white",
-              border: "none",
-              padding: 10,
-              borderRadius: 999,
-            }}
+            onClick={(e) => { e.stopPropagation(); closeModal() }}
+            aria-label="Закрыть"
+            className="absolute top-4 right-4 z-50 bg-black/50 text-white px-3 py-2 rounded-full"
+            style={{ pointerEvents: "auto" }}
           >
             ✕
           </button>
 
+          {/* Стрелки только на десктопе — тоже интерактивны */}
           <button
-            onClick={prevImage}
-            aria-label="Prev"
-            style={{
-              display: typeof window !== "undefined" && window.innerWidth >= 768 ? "flex" : "none",
-              position: "absolute",
-              left: 24,
-              top: "50%",
-              transform: "translateY(-50%)",
-              zIndex: 1002,
-              background: "rgba(0,0,0,0.28)",
-              color: "white",
-              border: "none",
-              padding: 12,
-              borderRadius: 8,
-            }}
-          >‹</button>
-
+            onClick={(e) => { e.stopPropagation(); prevImage() }}
+            aria-label="Предыдущее"
+            className="hidden md:flex absolute left-6 top-1/2 -translate-y-1/2 z-50 bg-black/40 text-white p-3 rounded-full"
+            style={{ pointerEvents: "auto" }}
+          >
+            ‹
+          </button>
           <button
-            onClick={nextImage}
-            aria-label="Next"
-            style={{
-              display: typeof window !== "undefined" && window.innerWidth >= 768 ? "flex" : "none",
-              position: "absolute",
-              right: 24,
-              top: "50%",
-              transform: "translateY(-50%)",
-              zIndex: 1002,
-              background: "rgba(0,0,0,0.28)",
-              color: "white",
-              border: "none",
-              padding: 12,
-              borderRadius: 8,
-            }}
-          >›</button>
+            onClick={(e) => { e.stopPropagation(); nextImage() }}
+            aria-label="Следующее"
+            className="hidden md:flex absolute right-6 top-1/2 -translate-y-1/2 z-50 bg-black/40 text-white p-3 rounded-full"
+            style={{ pointerEvents: "auto" }}
+          >
+            ›
+          </button>
 
-          <div style={{ position: "absolute", inset: 0, zIndex: 1001, display: "flex" }} aria-hidden>
-            <div style={{ flex: 1, height: "100%" }} onClick={(e) => { e.stopPropagation(); prevImage() }} />
-            <div style={{ flex: 1, height: "100%" }} onClick={(e) => { e.stopPropagation(); nextImage() }} />
-          </div>
-
+          {/* Контейнер изображения.
+              Важно: wrapper имеет pointer-events: none, чтобы клики по картинке проходили на родителя.
+              Стрелки и кнопка закрытия всё ещё выше и кликабельны (pointer-events: auto). */}
           <div
-            onClick={(e) => {
-              e.stopPropagation()
-              if ((e as React.MouseEvent).clientX !== undefined) onModalAreaClick(e as React.MouseEvent)
-            }}
+            aria-hidden
             style={{
               zIndex: 1002,
-              maxWidth: "calc(100vw - 32px)",
-              maxHeight: "calc(100dvh - 32px)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              padding: 8,
+              width: "100%",
+              height: "100%",
+              padding: 12,
+              pointerEvents: "none", // <-- ключевое: пропускаем все pointer события к контейнеру-модалке
             }}
           >
-            <div style={{ position: "relative", width: "100%", height: "min(80vh, 80vw)", maxWidth: "1200px" }}>
+            <div
+              style={{
+                maxWidth: "90%",
+                maxHeight: "85%",
+                width: "1200px",
+                height: "80vh",
+                position: "relative",
+                borderRadius: 8,
+                overflow: "hidden",
+              }}
+            >
               <Image
+                key={images[currentImageIndex]}
                 src={images[currentImageIndex]}
-                alt={`Large ${currentImageIndex + 1}`}
+                alt={`Фото ${currentImageIndex + 1}`}
                 fill
-                style={{
-                  objectFit: "contain",
-                  borderRadius: 8,
-                  touchAction: "manipulation",
-                  WebkitUserSelect: "none",
-                  userSelect: "none",
-                  MozUserSelect: "none",
-                }}
+                style={{ objectFit: "contain", pointerEvents: "none", userSelect: "none" }} // image не перехватывает события
                 sizes="(max-width: 768px) 100vw, 80vw"
                 priority
               />
             </div>
           </div>
 
-          <div style={{ position: "absolute", bottom: 12, left: "50%", transform: "translateX(-50%)", color: "rgba(255,255,255,0.85)", fontSize: 13, zIndex: 1003 }}>
-            Esc — выйти • Нажмите по левой/правой стороне экрана или свайпните для листания
+          {/* Подсказка */}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-sm text-white/80 text-center" style={{ zIndex: 1003 }}>
+            Esc — выйти • Нажмите влево/вправо или свайпните для перелистывания
           </div>
         </div>
       )}
+
+
+
     </div>
   )
 }
