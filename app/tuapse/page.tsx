@@ -174,7 +174,7 @@ export default function TuapsePage() {
       <section className="py-8">
         <div className="container mx-auto px-4">
           <div className="relative max-w-4xl mx-auto" data-aos="zoom-in" data-aos-delay="400">
-            <div className="relative h-96 md:h-[520px] rounded-lg overflow-hidden shadow-2xl hover:shadow-3xl transition-shadow duration-500 bg-black flex items-center justify-center">
+            <div className="relative h-96 md:h-[520px] rounded-lg overflow-hidden shadow-2xl hover:shadow-3xl transition-shadow duration-500 bg-white flex items-center justify-center">
               <img
                 src={images[currentImageIndex] || "/placeholder.svg"}
                 alt={`Туапсе - фото ${currentImageIndex + 1}`}
@@ -370,7 +370,7 @@ export default function TuapsePage() {
               Оставить заявку
             </Button>
             <Button size="lg" variant="outline" asChild className="text-lg py-6 px-8 transition-all duration-300 border-2">
-              <Link href="tel:+74951234567">Позвонить сейчас</Link>
+              <Link href="tel:+79616683775">Позвонить сейчас</Link>
             </Button>
           </div>
         </div>
@@ -380,7 +380,7 @@ export default function TuapsePage() {
       <footer className="bg-black text-white py-8" data-aos="fade-up">
         <div className="container mx-auto px-4 text-center">
           <Link href="/" className="text-2xl font-bold text-primary mb-4 inline-block transition-transform duration-300">Team Rive</Link>
-          <p className="text-gray-400">&copy; 2024 Team Rive. Все права защищены.</p>
+          <p className="text-gray-400">&copy; 2025 Team Rive. Все права защищены.</p>
         </div>
       </footer>
 

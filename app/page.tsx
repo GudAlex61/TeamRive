@@ -311,8 +311,8 @@ export default function HomePage() {
 
   // === HERO SLIDER (replacement) ===
   const heroImages = [
-    "/anapa/photo_2025-09-15_21-01-43.jpg?height=1080&width=1920",
     "/football.jpg",
+    "/basketbol.jpg",
     "/anapa/photo_2025-09-15_21-02-25.jpg?height=1080&width=1920",
   ]
   const [currentHero, setCurrentHero] = useState(0)
@@ -834,9 +834,9 @@ export default function HomePage() {
             <div>
               <h4 className="font-semibold mb-4 sm:mb-6 text-lg sm:text-xl">Контакты</h4>
               <div className="space-y-2 sm:space-y-3 text-gray-300">
-                <div className="flex items-center gap-3"><Phone className="w-4 h-4" /><span className="text-sm sm:text-lg">+7 (495) 123-45-67</span></div>
+                <div className="flex items-center gap-3"><Phone className="w-4 h-4" /><span className="text-sm sm:text-lg">+7 (961) 668-37-75</span></div>
                 <div className="flex items-center gap-3"><Mail className="w-4 h-4" /><span className="text-sm sm:text-lg">info@teamrive.ru</span></div>
-                <div className="flex items-center gap-3"><MapIcon className="w-4 h-4" /><span className="text-sm sm:text-lg">Москва, ул. Спортивная, 15</span></div>
+                <div className="flex items-center gap-3"><MapIcon className="w-4 h-4" /><span className="text-sm sm:text-lg">Москва, ул. Воловья, 3</span></div>
               </div>
             </div>
 
@@ -846,7 +846,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="border-t border-gray-800 mt-8 sm:mt-12 pt-6 text-center text-gray-400"><p className="text-sm sm:text-lg">© 2024 Team Rive. Все права защищены.</p></div>
+          <div className="border-t border-gray-800 mt-8 sm:mt-12 pt-6 text-center text-gray-400"><p className="text-sm sm:text-lg">© 2025Team Rive. Все права защищены.</p></div>
         </div>
       </footer>
 
