@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -13,12 +14,10 @@ export default function VolgogradPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const router = useRouter()
 
-  // touch/swipe refs
   const touchStartX = useRef<number | null>(null)
   const touchStartY = useRef<number | null>(null)
   const prevBodyOverflow = useRef<string | null>(null)
 
-  // AOS-like observer
   useEffect(() => {
     if (typeof window === "undefined") return
     const timeouts: number[] = []
@@ -52,17 +51,17 @@ export default function VolgogradPage() {
   useEffect(() => { if (typeof window !== "undefined") window.scrollTo(0, 0) }, [])
 
   const images = [
-    "/volgograd/arena.jpg",
-    "/volgograd/arena-plan.png",
+    "/volgograd/arena.webp",
+    "/volgograd/arena-plan.webp",
     "/volgograd/Volzhskij-manezh-1.jpg",
-    "/volgograd/noy-standart-1.jpg",
-    "/volgograd/noy-standart-2.jpg",
-    "/volgograd/pool.jpg",
-    "/volgograd/volga-volga1.jpeg",
+    "/volgograd/noy-standart-1.webp",
+    "/volgograd/noy-standart-2.webp",
+    "/volgograd/pool.webp",
+    "/volgograd/volga-volga1.webp",
     "/volgograd/volga-volga2.jpeg",
-    "/volgograd/volga-golga3.jpeg",
+    "/volgograd/volga-golga3.webp",
     "/volgograd/volga-volga-toilet.jpeg",
-    "/volgograd/volga-volga-pool.jpeg",
+    "/volgograd/volga-volga-pool.webp",
     "/volgograd/zenit-seats.jpg",
   ]
 
@@ -71,11 +70,9 @@ export default function VolgogradPage() {
 
   const openModalAt = (idx: number) => {
     setCurrentImageIndex(idx)
-    // блокируем прокрутку корректно: сохраняем предыдущее значение и ставим hidden
     if (typeof document !== "undefined") {
       prevBodyOverflow.current = document.body.style.overflow
       document.body.style.overflow = "hidden"
-      // на iOS полезно ещё фиксировать высоту, но это может вызвать сдвиги — пока ограничимся overflow
     }
     setModalOpen(true)
   }
@@ -98,7 +95,6 @@ export default function VolgogradPage() {
     return () => window.removeEventListener("keydown", onKey)
   }, [modalOpen, nextImage, prevImage])
 
-  // Touch handlers for swipe
   const onTouchStart = (e: React.TouchEvent) => {
     if (!e.touches || e.touches.length === 0) return
     touchStartX.current = e.touches[0].clientX
@@ -121,16 +117,14 @@ export default function VolgogradPage() {
     touchStartY.current = null
   }
 
-  // click half-area (desktop mouse clicks also handled)
   const onModalAreaClick = (e: React.MouseEvent) => {
     const x = e.clientX
-    const vw = window.innerWidth
+    const vw = typeof window !== "undefined" ? window.innerWidth : 0
     if (x < vw / 2) prevImage()
     else nextImage()
   }
 
   const scrollToBooking = () => {
-    // SPA-навигация: добавляем query param, главная страница читает его и скроллит к бронингу
     router.push("/?scrollTo=booking")
   }
 
@@ -173,12 +167,14 @@ export default function VolgogradPage() {
         <div className="container mx-auto px-4">
           <div className="relative max-w-4xl mx-auto" data-aos="zoom-in" data-aos-delay="400">
             <div className="relative h-96 md:h-[520px] rounded-lg overflow-hidden shadow-2xl hover:shadow-3xl transition-shadow duration-500 bg-white flex items-center justify-center">
-              <img
+              <Image
                 src={images[currentImageIndex] || "/placeholder.svg"}
                 alt={`Волгоград - фото ${currentImageIndex + 1}`}
+                width={1200}
+                height={720}
                 className="max-w-full max-h-full object-contain transition-all duration-500 cursor-zoom-in"
                 onClick={() => openModalAt(currentImageIndex)}
-                draggable={false}
+                draggable={false as any}
               />
 
               <button
@@ -208,7 +204,7 @@ export default function VolgogradPage() {
                   onClick={() => setCurrentImageIndex(idx)}
                   className={`flex-shrink-0 w-20 h-16 rounded-md overflow-hidden border-2 transition-all duration-300 ${idx === currentImageIndex ? "border-primary shadow-lg" : "border-transparent"}`}
                 >
-                  <img src={img} alt={`thumb ${idx + 1}`} className="w-full h-full object-cover" draggable={false} />
+                  <Image src={img} alt={`thumb ${idx + 1}`} width={80} height={64} className="w-full h-full object-cover" draggable={false as any} />
                 </button>
               ))}
             </div>
@@ -403,13 +399,11 @@ export default function VolgogradPage() {
       {modalOpen && (
         <div
           className="fixed inset-0 flex items-center justify-center"
-          // overlay: solid black semi
           style={{ background: "rgba(0,0,0,0.92)", zIndex: 1000, touchAction: "none" }}
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
-          onMouseDown={(e) => { /* prevent background actions */ e.preventDefault() }}
+          onMouseDown={(e) => { e.preventDefault() }}
         >
-          {/* Close button - explicit zIndex so it's always clickable */}
           <button
             onClick={closeModal}
             aria-label="Close"
@@ -428,12 +422,11 @@ export default function VolgogradPage() {
             ✕
           </button>
 
-          {/* Desktop arrows */}
           <button
             onClick={prevImage}
             aria-label="Prev"
             style={{
-              display: window.innerWidth >= 768 ? "flex" : "none",
+              display: typeof window !== "undefined" && window.innerWidth >= 768 ? "flex" : "none",
               position: "absolute",
               left: 24,
               top: "50%",
@@ -451,7 +444,7 @@ export default function VolgogradPage() {
             onClick={nextImage}
             aria-label="Next"
             style={{
-              display: window.innerWidth >= 768 ? "flex" : "none",
+              display: typeof window !== "undefined" && window.innerWidth >= 768 ? "flex" : "none",
               position: "absolute",
               right: 24,
               top: "50%",
@@ -465,24 +458,14 @@ export default function VolgogradPage() {
             }}
           >›</button>
 
-          {/* Clickable halves (below the close button) */}
           <div style={{ position: "absolute", inset: 0, zIndex: 1001, display: "flex" }} aria-hidden>
-            <div
-              style={{ flex: 1, height: "100%" }}
-              onClick={(e) => { e.stopPropagation(); prevImage() }}
-            />
-            <div
-              style={{ flex: 1, height: "100%" }}
-              onClick={(e) => { e.stopPropagation(); nextImage() }}
-            />
+            <div style={{ flex: 1, height: "100%" }} onClick={(e) => { e.stopPropagation(); prevImage() }} />
+            <div style={{ flex: 1, height: "100%" }} onClick={(e) => { e.stopPropagation(); nextImage() }} />
           </div>
 
-          {/* Image container — centered, constrained to viewport with padding */}
           <div
             onClick={(e) => {
-              // prevent outer halves click from triggering when clicking the image container itself
               e.stopPropagation()
-              // If user clicks inside image area with a mouse, allow determination by side
               if ((e as React.MouseEvent).clientX !== undefined) onModalAreaClick(e as React.MouseEvent)
             }}
             style={{
@@ -495,23 +478,23 @@ export default function VolgogradPage() {
               padding: 8,
             }}
           >
-            <img
-              src={images[currentImageIndex]}
-              alt={`Large ${currentImageIndex + 1}`}
-              draggable={false}
-              style={{
-                width: "auto",
-                height: "auto",
-                maxWidth: "100%",
-                maxHeight: "100%",
-                objectFit: "contain",
-                borderRadius: 8,
-                touchAction: "manipulation",
-                WebkitUserSelect: "none",
-                userSelect: "none",
-                MozUserSelect: "none",
-              }}
-            />
+            <div style={{ position: "relative", width: "100%", height: "min(80vh, 80vw)", maxWidth: "1400px" }}>
+              <Image
+                src={images[currentImageIndex]}
+                alt={`Large ${currentImageIndex + 1}`}
+                fill
+                style={{
+                  objectFit: "contain",
+                  borderRadius: 8,
+                  touchAction: "manipulation",
+                  WebkitUserSelect: "none",
+                  userSelect: "none",
+                  MozUserSelect: "none",
+                }}
+                sizes="(max-width: 768px) 100vw, 80vw"
+                priority
+              />
+            </div>
           </div>
 
           <div style={{ position: "absolute", bottom: 12, left: "50%", transform: "translateX(-50%)", color: "rgba(255,255,255,0.85)", fontSize: 13, zIndex: 1003 }}>

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import Link from "next/link"
 import { Textarea } from "@/components/ui/textarea"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import {
@@ -311,9 +312,9 @@ export default function HomePage() {
 
   // === HERO SLIDER (replacement) ===
   const heroImages = [
-    "/football.jpg",
-    "/basketbol.jpg",
-    "/anapa/photo_2025-09-15_21-02-25.jpg?height=1080&width=1920",
+    "/football.webp",
+    "/basketbol.webp",
+    "/anapa/photo_2025-09-15_21-02-25.webp?height=1080&width=1920",
   ]
   const [currentHero, setCurrentHero] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
@@ -447,8 +448,8 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8" data-aos="zoom-in">
             {[
-              { city: "Анапа", image: "/anapa/photo_2025-09-15_21-02-25.jpg?height=300&width=400", features: ["Собственное футбольное поле","Бассейн с подогревом","Современный тренажерный зал","Сауна"], route: "anapa" },
-              { city: "Волгоград", image: "/volgograd/arena.jpg?height=300&width=400", features: ["Легкоатлетический манеж","Крытый спортивный зал","Культурная программа","Занятия на олимпийском стадионе"], route: "volgograd" },
+              { city: "Анапа", image: "/anapa/photo_2025-09-15_21-02-25.webp?height=300&width=400", features: ["Собственное футбольное поле","Бассейн с подогревом","Современный тренажерный зал","Сауна"], route: "anapa" },
+              { city: "Волгоград", image: "/volgograd/arena.webp?height=300&width=400", features: ["Легкоатлетический манеж","Крытый спортивный зал","Культурная программа","Занятия на олимпийском стадионе"], route: "volgograd" },
               { city: "Туапсе", image: "/tuapse/bur1.jpg", features: ["100 м от отеля до моря","Бассейн","Вид на горы"], route: "tuapse" },
             ].map((base, index) => (
               <Card key={index} className="overflow-hidden hover:shadow-2xl transition-all duration-500 cursor-pointer group transform hover:scale-105 border-0 shadow-lg" onClick={() => navigateToBase(base.route)}>
@@ -841,8 +842,39 @@ export default function HomePage() {
             </div>
 
             <div>
+              <h4 className="font-semibold mb-4 sm:mb-6 text-lg sm:text-xl">Документы</h4>
+              <ul className="space-y-2 text-gray-300 text-sm sm:text-lg">
+                <li>
+                  <a 
+                    href="/terms.pdf" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="hover:text-primary transition-colors duration-200 cursor-pointer"
+                  >
+                    Пользовательское соглашение
+                  </a>
+                </li>
+              </ul>
+            </div>
+            <div>
               <h4 className="font-semibold mb-4 sm:mb-6 text-lg sm:text-xl">Наши базы</h4>
-              <ul className="space-y-2 text-gray-300 text-sm sm:text-lg"><li>Анапа</li><li>Волгоград</li><li>Туапсе</li></ul>
+              <ul className="space-y-2 text-gray-300 text-sm sm:text-lg">
+                <li>
+                  <Link href="/anapa" className="hover:text-primary transition-colors duration-200 cursor-pointer">
+                    Анапа
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/volgograd" className="hover:text-primary transition-colors duration-200 cursor-pointer">
+                    Волгоград
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/tuapse" className="hover:text-primary transition-colors duration-200 cursor-pointer">
+                    Туапсе
+                  </Link>
+                </li>
+              </ul>
             </div>
           </div>
 

@@ -53,12 +53,12 @@ export default function TuapsePage() {
 
   // Replace with your real images when ready
   const images = [
-    "/tuapse/hotel.png",
-    "/tuapse/revuhotelslide1.jpg",
-    "/tuapse/outside.png",
-    "/tuapse/room.png",
-    "/tuapse/room2.png",
-    "/tuapse/toilet.jpg",
+    "/tuapse/hotel.png?height=600&width=800",
+    "/tuapse/revuhotelslide1.jpg?height=600&width=800",
+    "/tuapse/outside.png?height=600&width=800",
+    "/tuapse/room.png?height=600&width=800",
+    "/tuapse/room2.png?height=600&width=800",
+    "/tuapse/toilet.jpg?height=600&width=800",
     "/tuapse/bur1.jpg",
     "/tuapse/bur2.jpg",
     "/tuapse/bur3.jpg",

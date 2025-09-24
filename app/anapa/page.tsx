@@ -2,6 +2,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -19,7 +20,6 @@ export default function AnapaPage() {
   const prevBodyOverflow = useRef<string | null>(null)
 
   useEffect(() => {
-    // начальные AOS-like анимации (без изменений)
     if (typeof window === "undefined") return
     const timeouts: number[] = []
     const observer = new IntersectionObserver(
@@ -52,15 +52,15 @@ export default function AnapaPage() {
   useEffect(() => { if (typeof window !== "undefined") window.scrollTo(0, 0) }, [])
 
   const images = [
-    "/anapa/photo_2025-09-15_21-02-25.jpg?height=600&width=800",
-    "/anapa/pool.jpg?height=600&width=800",
-    "/anapa/photo_2025-09-15_21-02-16.jpg?height=600&width=800",
-    "/anapa/photo_2025-09-15_21-02-20.jpg?height=600&width=800",
-    "/anapa/photo_2025-09-15_21-02-30.jpg?height=600&width=800",
-    "/anapa/photo_2025-09-15_21-01-43.jpg?height=600&width=800",
-    "/anapa/gym_preview.jpg?height=600&width=800",
-    "/anapa/tennis_preview.jpg?height=600&width=800",
-    "/anapa/preview_hotel.jpg?height=600&width=800",
+    "/anapa/photo_2025-09-15_21-02-25.webp?height=600&width=800",
+    "/anapa/pool.webp?height=600&width=800",
+    "/anapa/photo_2025-09-15_21-02-16.webp?height=600&width=800",
+    "/anapa/photo_2025-09-15_21-02-20.webp?height=600&width=800",
+    "/anapa/photo_2025-09-15_21-02-30.webp?height=600&width=800",
+    "/anapa/photo_2025-09-15_21-01-43.webp?height=600&width=800",
+    "/anapa/gym_preview.webp?height=600&width=800",
+    "/anapa/tennis_preview.webp?height=600&width=800",
+    "/anapa/preview_hotel.webp?height=600&width=800",
   ]
 
   const nextImage = useCallback(() => setCurrentImageIndex((p) => (p + 1) % images.length), [images.length])
@@ -68,11 +68,9 @@ export default function AnapaPage() {
 
   const openModalAt = (idx: number) => {
     setCurrentImageIndex(idx)
-    // блокируем прокрутку корректно: сохраняем предыдущее значение и ставим hidden
     if (typeof document !== "undefined") {
       prevBodyOverflow.current = document.body.style.overflow
       document.body.style.overflow = "hidden"
-      // на iOS полезно ещё фиксировать высоту, но это может вызвать сдвиги — пока ограничимся overflow
     }
     setModalOpen(true)
   }
@@ -120,15 +118,13 @@ export default function AnapaPage() {
 
   // click half-area (desktop mouse clicks also handled)
   const onModalAreaClick = (e: React.MouseEvent) => {
-    // если клик по кнопке — он будет перехвачен раньше, поэтому здесь безопасно читать координату
     const x = e.clientX
-    const vw = window.innerWidth
+    const vw = typeof window !== "undefined" ? window.innerWidth : 0
     if (x < vw / 2) prevImage()
     else nextImage()
   }
 
   const scrollToBooking = () => {
-    // SPA-навигация: добавляем query param, главная страница читает его и скроллит к бронингу
     router.push("/?scrollTo=booking")
   }
 
@@ -172,12 +168,14 @@ export default function AnapaPage() {
         <div className="container mx-auto px-4">
           <div className="relative max-w-4xl mx-auto" data-aos="zoom-in" data-aos-delay="400">
             <div className="relative h-96 md:h-[520px] rounded-lg overflow-hidden shadow-2xl hover:shadow-3xl transition-shadow duration-500 bg-white flex items-center justify-center">
-              <img
+              <Image
                 src={images[currentImageIndex] || "/placeholder.svg"}
                 alt={`Анапа - фото ${currentImageIndex + 1}`}
+                width={1200}
+                height={720}
                 className="max-w-full max-h-full object-contain transition-all duration-500 cursor-zoom-in"
                 onClick={() => openModalAt(currentImageIndex)}
-                draggable={false}
+                draggable={false as any}
               />
 
               <button
@@ -207,7 +205,7 @@ export default function AnapaPage() {
                   onClick={() => setCurrentImageIndex(idx)}
                   className={`flex-shrink-0 w-20 h-16 rounded-md overflow-hidden border-2 transition-all duration-300 ${idx === currentImageIndex ? "border-primary shadow-lg" : "border-transparent"}`}
                 >
-                  <img src={img} alt={`thumb ${idx + 1}`} className="w-full h-full object-cover" draggable={false} />
+                  <Image src={img} alt={`thumb ${idx + 1}`} width={80} height={64} className="w-full h-full object-cover" draggable={false as any} />
                 </button>
               ))}
             </div>
@@ -221,8 +219,8 @@ export default function AnapaPage() {
             <div className="lg:col-span-2" data-aos="fade-right" data-aos-delay="200">
               <h2 className="text-3xl font-serif font-bold mb-6 bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">О базе — Анапа</h2>
               <div className="prose prose-gray max-w-none space-y-6">
-  <p className="text-muted-foreground text-lg leading-relaxed transition-colors duration-300">
-    <a 
+                <p className="text-muted-foreground text-lg leading-relaxed transition-colors duration-300">
+                  <a 
       href="https://zolotoerunohotel.ru/" 
       target="_blank" 
       rel="noopener noreferrer"
@@ -230,10 +228,10 @@ export default function AnapaPage() {
     >
       Гостиница «Золотое Руно»
     </a> — идеальное место для тренировочных сборов в Анапе. В пакет (от 2200₽/чел) входит проживание в номерах на 2—3 человека, трёхразовое питание по системе «шведская линия», а также курортный сбор.
-  </p>
-  <p className="text-muted-foreground text-lg leading-relaxed transition-colors duration-300">
-    На территории — бассейн с подогревом и собственный пляж для восстановления после тренировок. Гостиница расположена примерно в 100 метрах от моря, а турнирные матчи и тренировки проходят в 100 метрах от отеля на базе{' '}
-    <a 
+                </p>
+                <p className="text-muted-foreground text-lg leading-relaxed transition-colors duration-300">
+                  На территории — бассейн с подогревом и собственный пляж для восстановления после тренировок. Гостиница расположена примерно в 100 метрах от моря, а турнирные матчи и тренировки проходят в 100 метрах от отеля на базе{' '}
+                  <a 
       href="https://lokvityaz.ru/" 
       target="_blank" 
       rel="noopener noreferrer"
@@ -241,8 +239,8 @@ export default function AnapaPage() {
     >
       ЛОК «Витязь»
     </a>.
-  </p>
-</div>
+                </p>
+              </div>
             </div>
 
             <div data-aos="fade-left" data-aos-delay="400">
@@ -357,13 +355,11 @@ export default function AnapaPage() {
       {modalOpen && (
         <div
           className="fixed inset-0 flex items-center justify-center"
-          // overlay: solid black semi
           style={{ background: "rgba(0,0,0,0.92)", zIndex: 1000, touchAction: "none" }}
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
-          onMouseDown={(e) => { /* prevent background actions */ e.preventDefault() }}
+          onMouseDown={(e) => { e.preventDefault() }}
         >
-          {/* Close button - explicit zIndex so it's always clickable */}
           <button
             onClick={closeModal}
             aria-label="Close"
@@ -382,12 +378,11 @@ export default function AnapaPage() {
             ✕
           </button>
 
-          {/* Desktop arrows */}
           <button
             onClick={prevImage}
             aria-label="Prev"
             style={{
-              display: window.innerWidth >= 768 ? "flex" : "none",
+              display: typeof window !== "undefined" && window.innerWidth >= 768 ? "flex" : "none",
               position: "absolute",
               left: 24,
               top: "50%",
@@ -405,7 +400,7 @@ export default function AnapaPage() {
             onClick={nextImage}
             aria-label="Next"
             style={{
-              display: window.innerWidth >= 768 ? "flex" : "none",
+              display: typeof window !== "undefined" && window.innerWidth >= 768 ? "flex" : "none",
               position: "absolute",
               right: 24,
               top: "50%",
@@ -419,24 +414,14 @@ export default function AnapaPage() {
             }}
           >›</button>
 
-          {/* Clickable halves (below the close button) */}
           <div style={{ position: "absolute", inset: 0, zIndex: 1001, display: "flex" }} aria-hidden>
-            <div
-              style={{ flex: 1, height: "100%" }}
-              onClick={(e) => { e.stopPropagation(); prevImage() }}
-            />
-            <div
-              style={{ flex: 1, height: "100%" }}
-              onClick={(e) => { e.stopPropagation(); nextImage() }}
-            />
+            <div style={{ flex: 1, height: "100%" }} onClick={(e) => { e.stopPropagation(); prevImage() }} />
+            <div style={{ flex: 1, height: "100%" }} onClick={(e) => { e.stopPropagation(); nextImage() }} />
           </div>
 
-          {/* Image container — centered, constrained to viewport with padding */}
           <div
             onClick={(e) => {
-              // prevent outer halves click from triggering when clicking the image container itself
               e.stopPropagation()
-              // If user clicks inside image area with a mouse, allow determination by side
               if ((e as React.MouseEvent).clientX !== undefined) onModalAreaClick(e as React.MouseEvent)
             }}
             style={{
@@ -449,23 +434,23 @@ export default function AnapaPage() {
               padding: 8,
             }}
           >
-            <img
-              src={images[currentImageIndex]}
-              alt={`Large ${currentImageIndex + 1}`}
-              draggable={false}
-              style={{
-                width: "auto",
-                height: "auto",
-                maxWidth: "100%",
-                maxHeight: "100%",
-                objectFit: "contain",
-                borderRadius: 8,
-                touchAction: "manipulation",
-                WebkitUserSelect: "none",
-                userSelect: "none",
-                MozUserSelect: "none",
-              }}
-            />
+            <div style={{ position: "relative", width: "100%", height: "min(80vh, 80vw)", maxWidth: "1200px" }}>
+              <Image
+                src={images[currentImageIndex]}
+                alt={`Large ${currentImageIndex + 1}`}
+                fill
+                style={{
+                  objectFit: "contain",
+                  borderRadius: 8,
+                  touchAction: "manipulation",
+                  WebkitUserSelect: "none",
+                  userSelect: "none",
+                  MozUserSelect: "none",
+                }}
+                sizes="(max-width: 768px) 100vw, 80vw"
+                priority
+              />
+            </div>
           </div>
 
           <div style={{ position: "absolute", bottom: 12, left: "50%", transform: "translateX(-50%)", color: "rgba(255,255,255,0.85)", fontSize: 13, zIndex: 1003 }}>
