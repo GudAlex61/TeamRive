@@ -276,44 +276,79 @@ export default function VolgogradPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2" data-aos="fade-right" data-aos-delay="200">
               <h2 className="text-3xl font-serif font-bold mb-6 bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">О базе — Волгоград</h2>
-              <div className="prose prose-gray max-w-none space-y-6">
+             <div className="prose prose-gray max-w-none space-y-6">
+                <p className="text-muted-foreground text-lg leading-relaxed transition-colors duration-300">
+                  Мы предлагаем спортивную базу в городе Волгограде — современный комплекс для тренировок и проведения соревнований, 
+                  предлагающий широкий спектр услуг для спортсменов и команд. Здесь есть все необходимое для эффективных тренировок и комфортного отдыха.
+                </p>
+                
                 <p className="text-muted-foreground text-lg leading-relaxed transition-colors duration-300">
                   В пакет (от 2150₽) входит проживание в гостиницах <a 
-      href="https://noy-volgograd.ru/"
-      target="_blank" 
-      rel="noopener noreferrer"
-      className="text-current no-underline text-primary transition-colors duration-200 cursor-pointer"
-    >
-      «НОЙ»
-    </a> или <a 
-      href="https://volga-volga.bookonline24.ru/?fromDate=&toDate=&adultsCount=2" 
-      target="_blank" 
-      rel="noopener noreferrer"
-      className="text-current no-underline text-primary transition-colors duration-200 cursor-pointer"
-    >
-      «Волга-Волга»
-    </a>, трёхразовое питание и курортный сбор. Для команд доступны комфортные номера и полный спектр сервисов.
+                    href="https://noy-volgograd.ru/"
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-current no-underline text-primary transition-colors duration-200 cursor-pointer"
+                  >
+                    «НОЙ»
+                  </a> или <a 
+                    href="https://volga-volga.bookonline24.ru/?fromDate=&toDate=&adultsCount=2" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-current no-underline text-primary transition-colors duration-200 cursor-pointer"
+                  >
+                    «Волга-Волга»
+                  </a>, трёхразовое питание и курортный сбор. Для команд доступны комфортабельные номера различных категорий, 
+                  оснащенные всем необходимым для комфортного проживания, включая удобные кровати, современную мебель и телевизоры.
                 </p>
+
                 <p className="text-muted-foreground text-lg leading-relaxed transition-colors duration-300">
-                  Для участников предусмотрено посещение музея «Сталинградская битва» и Мемориала Мамаев Курган. Турниры и сборы проходят на стадионах 
-    <a 
-      href="https://volgogradarena.com/" 
-      target="_blank" 
-      rel="noopener noreferrer"
-      className="text-current no-underline text-primary transition-colors duration-200 cursor-pointer"
-    >
-      «Волгоград-Арена»
-    </a>, «Зенит» и в <a 
-      href="https://yandex.ru/maps/org/futbolny_manezh_imeni_mastera_sporta_sssr_a_b_nikitina/61635693760/gallery/?ll=44.820429%2C48.826710&z=10.71" 
-      target="_blank" 
-      rel="noopener noreferrer"
-      className="text-current no-underline text-primary transition-colors duration-200 cursor-pointer"
-    >
-      манеже А.Нкитина
-    </a>.
+                  Спортивная инфраструктура базы включает:
                 </p>
+
+                <ul className="text-muted-foreground text-lg leading-relaxed list-disc list-inside space-y-2 ml-4">
+                  <li>
+                    <strong>Стадион:</strong> Обширное футбольное поле с качественным покрытием и беговыми дорожками, 
+                    окруженное трибунами для зрителей
+                  </li>
+                  <li>
+                    <strong>Крытый футбольный манеж:</strong> Позволяет проводить тренировки и матчи в любое время года 
+                    и при любых погодных условиях
+                  </li>
+                  <li>
+                    <strong>Бассейн:</strong> Открытый бассейн с водными горками для релаксации и восстановления после тренировок
+                  </li>
+                </ul>
+
                 <p className="text-muted-foreground text-lg leading-relaxed transition-colors duration-300">
-                  Организуем трансфер, питание, медицинское сопровождение и тренировочные сессии под ключ.
+                  Удобное расположение базы и близость к важным объектам инфраструктуры, таким как стадион "Волгоград Арена", 
+                  делают ее привлекательной для проведения крупных спортивных мероприятий и тренировочных сборов.
+                </p>
+
+                <p className="text-muted-foreground text-lg leading-relaxed transition-colors duration-300">
+                  Для участников предусмотрено посещение музея «Сталинградская битва» и Мемориала Мамаев Курган. 
+                  Турниры и сборы проходят на стадионах{' '}
+                  <a 
+                    href="https://volgogradarena.com/" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-current no-underline text-primary transition-colors duration-200 cursor-pointer"
+                  >
+                    «Волгоград-Арена»
+                  </a>, «Зенит» и в{' '}
+                  <a 
+                    href="https://yandex.ru/maps/org/futbolny_manezh_imeni_mastera_sporta_sssr_a_b_nikitina/61635693760/gallery/?ll=44.820429%2C48.826710&z=10.71" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-current no-underline text-primary transition-colors duration-200 cursor-pointer"
+                  >
+                    манеже А.Никитина
+                  </a>.
+                </p>
+
+                <p className="text-muted-foreground text-lg leading-relaxed transition-colors duration-300">
+                  Организуем трансфер, питание, медицинское сопровождение и тренировочные сессии под ключ. 
+                  База в Волгограде — идеальный выбор для команд, стремящихся к интенсивной подготовке в современных условиях 
+                  с богатой спортивной инфраструктурой.
                 </p>
               </div>
             </div>

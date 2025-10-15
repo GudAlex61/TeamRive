@@ -278,27 +278,62 @@ export default function AnapaPage() {
             <div className="lg:col-span-2" data-aos="fade-right" data-aos-delay="200">
               <h2 className="text-3xl font-serif font-bold mb-6 bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">О базе — Анапа</h2>
               <div className="prose prose-gray max-w-none space-y-6">
-                <p className="text-muted-foreground text-lg leading-relaxed transition-colors duration-300">
-                  <a 
-      href="https://zolotoerunohotel.ru/" 
-      target="_blank" 
-      rel="noopener noreferrer"
-      className="text-current no-underline text-primary transition-colors duration-200 cursor-pointer"
-    >
-      Гостиница «Золотое Руно»
-    </a> — идеальное место для тренировочных сборов в Анапе. В пакет (от 2200₽/чел) входит проживание в номерах на 2—3 человека, трёхразовое питание по системе «шведская линия», а также курортный сбор.
-                </p>
-                <p className="text-muted-foreground text-lg leading-relaxed transition-colors duration-300">
-                  На территории — бассейн с подогревом и собственный пляж для восстановления после тренировок. Гостиница расположена примерно в 100 метрах от моря, а турнирные матчи и тренировки проходят в 100 метрах от отеля на базе{' '}
-                  <a 
-      href="https://lokvityaz.ru/" 
-      target="_blank" 
-      rel="noopener noreferrer"
-      className="text-current no-underline text-primary transition-colors duration-200 cursor-pointer"
-    >
-      ЛОК «Витязь»
-    </a>.
-                </p>
+                  <>
+                    <p className="text-muted-foreground text-lg leading-relaxed transition-colors duration-300">
+                      Спортивная база, расположенная на территории{' '}
+                      <a 
+                        href="https://zolotoerunohotel.ru/" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-current no-underline text-primary transition-colors duration-200 cursor-pointer"
+                      >
+                        гостиницы «Золотое Руно»
+                      </a>{' '}
+                      в Анапе, предлагает отличные условия для проведения тренировок и спортивных сборов в комфортной обстановке. 
+                      В пакет (от 2200₽/чел) входит проживание в номерах на 2—3 человека, трёхразовое питание по системе «шведская линия», а также курортный сбор.
+                    </p>
+
+                    <p className="text-muted-foreground text-lg leading-relaxed transition-colors duration-300">
+                      Ключевые особенности этой базы:
+                    </p>
+
+                    <ul className="text-muted-foreground text-lg leading-relaxed list-disc list-inside space-y-2 ml-4">
+                      <li>
+                        <strong>Проживание:</strong> Уютные и комфортабельные номера в гостинице «Золотое Руно», оснащенные всем необходимым для отдыха и восстановления.
+                      </li>
+                      <li>
+                        <strong>Питание:</strong> Сбалансированное трехразовое питание по системе «шведская линия» позволяет спортсменам получать необходимую энергию для достижения высоких результатов.
+                      </li>
+                      <li>
+                        <strong>Спортивная инфраструктура:</strong> Все тренировки и турнирные матчи проходят в 100 метрах от отеля на базе{' '}
+                        <a 
+                          href="https://lokvityaz.ru/" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-current no-underline text-primary transition-colors duration-200 cursor-pointer"
+                        >
+                          ЛОК «Витязь»
+                        </a>, которая включает:
+                        <ul className="list-disc list-inside ml-6 mt-2 space-y-1">
+                          <li>Футбольное поле с искусственным покрытием для тренировок и проведения матчей.</li>
+                          <li>Теннисные корты с качественным покрытием.</li>
+                          <li>Современный тренажерный зал, оборудованный всем необходимым для силовых тренировок и общей физической подготовки.</li>
+                          <li>Зал для бокса с рингом и трибунами для зрителей.</li>
+                        </ul>
+                      </li>
+                      <li>
+                        <strong>Бассейн:</strong> На территории гостиницы находится бассейн с подогревом, который идеально подходит для релаксации и восстановления после тренировок.
+                      </li>
+                      <li>
+                        <strong>Благоустроенная территория:</strong> Ухоженная территория с зелеными насаждениями для отдыха и прогулок, а также собственный пляж для восстановления после тренировок.
+                      </li>
+                    </ul>
+
+                    <p className="text-muted-foreground text-lg leading-relaxed transition-colors duration-300">
+                      Преимущества базы включают удобное расположение (всего 100 метров от моря), комфортные условия проживания, разнообразную спортивную инфраструктуру и возможность проведения тренировок на свежем воздухе в благоприятном климате. 
+                      Эта база идеально подходит для команд, стремящихся к эффективной подготовке и достижению высоких спортивных результатов.
+                    </p>
+                  </>
               </div>
             </div>
 

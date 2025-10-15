@@ -280,27 +280,63 @@ export default function TuapsePage() {
               <h2 className="text-3xl font-serif font-bold mb-6 bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">О базе — Туапсе</h2>
               <div className="prose prose-gray max-w-none space-y-6">
                 <p className="text-muted-foreground text-lg leading-relaxed transition-colors duration-300">
-                  В пакет (от 2100₽) входит проживание в <a 
-      href="https://xn--b1afaxnol6fva.xn--p1ai/" 
-      target="_blank" 
-      rel="noopener noreferrer"
-      className="text-current no-underline text-primary transition-colors duration-200 cursor-pointer"
-    >
-      отеле «Ревю»
-    </a>, трёхразовое питание и курортный сбор. Отель расположен примерно в 50 метрах от моря, что делает базу идеальной для восстановления между тренировками.
+                  Расположенная в живописном уголке Туапсе, эта спортивная база предлагает все необходимое для эффективных тренировок и комфортного пребывания, всего в 50 метрах от моря. Сочетание морского воздуха, благоприятного климата и развитой инфраструктуры делает ее отличным выбором для спортсменов различных дисциплин.
                 </p>
+                
                 <p className="text-muted-foreground text-lg leading-relaxed transition-colors duration-300">
-                  На территории отеля — бассейны, детские площадки и спортивные площадки. Турнирные матчи и тренировки проходят на территории <a 
-      href="https://study.gstou.ru/agoy" 
-      target="_blank" 
-      rel="noopener noreferrer"
-      className="text-current no-underline text-primary transition-colors duration-200 cursor-pointer"
-    >
-      СОЛ «Буревестник»
-    </a>.
+                  Инфраструктура базы включает проживание в комфортабельном гостиничном комплексе <a 
+                    href="https://xn--b1afaxnol6fva.xn--p1ai/" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-current no-underline text-primary transition-colors duration-200 cursor-pointer"
+                  >
+                    «Ревю»
+                  </a> с современным дизайном. Номера оснащены всем необходимым для отдыха: удобными кроватями (как двухспальными, так и раздельными), современной мебелью, телевизорами и чистыми, хорошо оборудованными ванными комнатами с душевыми кабинами. Многие номера имеют балконы с видом на территорию или окружающую зелень.
                 </p>
+                
                 <p className="text-muted-foreground text-lg leading-relaxed transition-colors duration-300">
-                  Организуем трансфер, питание, медицинское сопровождение и полный спектр услуг для комфортного проведения тренировочных сборов.
+                  Для обеспечения полноценного восстановления и поддержания энергии спортсменов предусмотрено трехразовое питание.
+                </p>
+
+                <p className="text-muted-foreground text-lg leading-relaxed transition-colors duration-300">
+                  Спортивные сооружения расположены на территории <a 
+                    href="https://study.gstou.ru/agoy" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-current no-underline text-primary transition-colors duration-200 cursor-pointer"
+                  >
+                    СОЛ «Буревестник»
+                  </a> и включают:
+                </p>
+                
+                <ul className="text-muted-foreground text-lg leading-relaxed list-disc list-inside space-y-2 ml-4">
+                  <li><strong>Футбольное поле:</strong> Полноценный стадион с качественным футбольным полем (предположительно с натуральным травяным покрытием) и легкоатлетическими беговыми дорожками, что позволяет проводить тренировки по легкой атлетике и футболу.</li>
+                  <li><strong>Тренировочное поле:</strong> Дополнительное футбольное поле с искусственным покрытием, идеальное для тренировочных занятий, мини-футбола и отработки тактических элементов.</li>
+                  <li><strong>Крытая тренировочная площадка:</strong> Специально оборудованная зона для функциональных тренировок и гимнастики, включающая гимнастические кольца и другие снаряды.</li>
+                </ul>
+
+                <p className="text-muted-foreground text-lg leading-relaxed transition-colors duration-300">
+                  Для восстановления и досуга доступны:
+                </p>
+                
+                <ul className="text-muted-foreground text-lg leading-relaxed list-disc list-inside space-y-2 ml-4">
+                  <li><strong>Бассейн и аквапарк:</strong> Открытый плавательный бассейн, окруженный зоной отдыха, а также небольшие водные горки, которые создают элементы мини-аквапарка – отличное место для восстановления после тренировок и досуга.</li>
+                  <li><strong>Благоустроенная территория:</strong> Ухоженная территория с пальмами и зеленью, создающая приятную атмосферу для отдыха и прогулок.</li>
+                </ul>
+
+                <p className="text-muted-foreground text-lg leading-relaxed transition-colors duration-300">
+                  <strong>Основные преимущества:</strong>
+                </p>
+                
+                <ul className="text-muted-foreground text-lg leading-relaxed list-disc list-inside space-y-2 ml-4">
+                  <li><strong>Идеальное расположение:</strong> Близость к морю (всего 50 метров) обеспечивает свежий воздух и легкий доступ к пляжному отдыху.</li>
+                  <li><strong>Разнообразные спортивные площадки:</strong> Возможность тренироваться в различных условиях – на стадионе, искусственном поле и в специализированной крытой зоне.</li>
+                  <li><strong>Комфорт проживания:</strong> Современные номера и полноценное питание способствуют быстрому восстановлению спортсменов.</li>
+                  <li><strong>Возможности для досуга:</strong> Бассейн с элементами аквапарка предлагает отличные условия для расслабления.</li>
+                </ul>
+
+                <p className="text-muted-foreground text-lg leading-relaxed transition-colors duration-300">
+                  Организуем трансфер, питание, медицинское сопровождение и полный спектр услуг для комфортного проведения тренировочных сборов. Эта база в Туапсе является превосходным выбором для спортивных команд, желающих провести сборы в комфортных условиях Черноморского побережья.
                 </p>
               </div>
             </div>
@@ -357,32 +393,32 @@ export default function TuapsePage() {
               {
                 icon: Dumbbell,
                 title: "Спортивные объекты",
-                features: ["Бассейны на территории отеля", "Спортивные площадки и поля в СОЛ «Буревестник»"]
+                features: ["Футбольное поле с натуральным покрытием", "Тренировочное поле с искусственным покрытием", "Крытая тренировочная площадка"]
               },
               {
                 icon: Waves,
                 title: "Отдых и восстановление",
-                features: ["Вид на горы", "Детские площадки", "Доступ к морю (~50 м)"],
+                features: ["Бассейн и мини-аквапарк", "Благоустроенная территория с зелеными зонами", "Доступ к морю (~50 м)"],
               },
               {
                 icon: UtensilsCrossed,
                 title: "Питание и проживание",
-                features: ["Отель «Ревю»", "3-разовое питание", "Меню для спортсменов"],
+                features: ["Отель «Ревю»", "3-разовое питание", "Современные номера с балконами"],
               },
               {
                 icon: Gamepad2,
                 title: "Развлечения",
-                features: ["Спортивные площадки", "Развлекательные программы"],
+                features: ["Спортивные площадки", "Развлекательные программы", "Прогулки по территории"],
               },
               {
                 icon: Shield,
                 title: "Безопасность",
-                features: ["Охраняемая территория", "Медицинское сопровождение"],
+                features: ["Охраняемая территория", "Медицинское сопровождение", "Комфортные условия проживания"],
               },
               {
                 icon: Car,
                 title: "Транспорт",
-                features: ["Трансфер от/до аэропорта и вокзала", "Организация поездок на тренировки"],
+                features: ["Трансфер от/до аэропорта и вокзала", "Организация поездок на тренировки", "Логистическая поддержка"],
               },
             ].map((facility, index) => (
               <Card key={index} className="group transition-all duration-500 border-0 shadow-lg bg-white/80 backdrop-blur-sm" data-aos="zoom-in" data-aos-delay={100 + index * 100}>
